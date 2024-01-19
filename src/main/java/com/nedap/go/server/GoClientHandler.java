@@ -42,32 +42,46 @@ public class GoClientHandler implements Runnable{
     return username;
   }
 
+  public boolean getQueued() {
+    return queued;
+  }
+
   public void handleHandshake() {
+    waitOneSecond();
     handleOutput(Protocol.hello() +
-        "Welcome to the GO server! use LOGIN~<username> to log in.\n");
+        "Welcome to the GO server! use LOGIN~<username> to log in.");
   }
 
   public void handleInput(String inputLine) {
     String[] parsedInput = inputLine.split(Protocol.SEPARATOR);
     try {
       switch (parsedInput[0]) {
+
         case Protocol.LOGIN:
           if (username == null) {
-            username = parsedInput[1];
-            server.broadCastMessage(this,
-                Protocol.login() + username + " has joined the server.\n");
+            if (!server.userAlreadyLoggedIn(this, parsedInput[1])) {
+              username = parsedInput[1];
+              server.broadCastMessage(this,
+                  Protocol.login() + username + " has joined the server.");
+            } else {
+              handleOutput(Protocol.error() + "User by that name already logged in!");
+            }
           } else {
             handleOutput(Protocol.error() +
-                "You are already logged in!\n");
+                "You are already logged in as " + username + "!");
           }
           break;
+
         case Protocol.QUEUE:
-          if (queued) {
-            queued = false;
-            handleOutput(Protocol.queue() + "You have been removed from the queue.\n");
-          } else {
-            queued = true;
-            handleOutput(Protocol.queue() + "You are now in the queue.\n");
+          if (username != null) {
+            if (queued) {
+              queued = false;
+              server.broadCastMessage(this, Protocol.queue() + username + " has left the queue.");
+            } else {
+              queued = true;
+              server.broadCastMessage(this, Protocol.queue() + username + " has joined the queue.");
+              handleOutput(server.getQueue());
+            }
           }
           break;
       }
@@ -78,6 +92,7 @@ public class GoClientHandler implements Runnable{
   public void handleOutput(String outputLine) {
     try {
       out.write(outputLine);
+      out.newLine();
       out.flush();
     } catch (IOException e) {
       closeConnection();
@@ -86,10 +101,15 @@ public class GoClientHandler implements Runnable{
 
   public void closeConnection() {
     try {
-      in.close();
-      out.close();
       socket.close();
     } catch (IOException ignored) {
+    }
+  }
+
+  public void waitOneSecond() {
+    try {
+      Thread.sleep(1000);
+    } catch (InterruptedException ignored) {
     }
   }
 }

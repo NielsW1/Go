@@ -1,8 +1,6 @@
 package com.nedap.go.gamelogic;
 
-import com.nedap.go.Go;
-import com.nedap.go.server.GoPlayer;
-import java.util.Arrays;
+import com.nedap.go.client.GoPlayer;
 
 public class GoGame {
 

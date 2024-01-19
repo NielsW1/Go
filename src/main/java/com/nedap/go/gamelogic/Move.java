@@ -1,6 +1,6 @@
 package com.nedap.go.gamelogic;
 
-import com.nedap.go.server.GoPlayer;
+import com.nedap.go.client.GoPlayer;
 
 public class Move {
 

@@ -14,14 +14,47 @@ public class GoServer {
 
   private boolean runServer = true;
   private final ServerSocket serverSocket;
-  public static ArrayList<GoClientHandler> handlers = new ArrayList<>();
+  public ArrayList<GoClientHandler> handlers;
 
   public GoServer(int port) throws IOException {
     serverSocket = new ServerSocket(port);
+    handlers = new ArrayList<>();
   }
 
   public int getServerPort() {
     return serverSocket.getLocalPort();
+  }
+
+  public List<GoClientHandler> getConnectedClients() {
+    return handlers;
+  }
+
+  public String getQueue() {
+    StringBuilder currentQueue = new StringBuilder();
+    currentQueue.append("Currently queued players:\n");
+    for (GoClientHandler handler : handlers) {
+      if (handler.getQueued()) {
+        try {
+          currentQueue.append(handler.getUsername()).append("\n");
+        } catch (NullPointerException ignored) {
+        }
+      }
+    }
+    return currentQueue.toString().trim();
+  }
+
+  public boolean userAlreadyLoggedIn(GoClientHandler clientHandler, String username) {
+    for (GoClientHandler handler : handlers) {
+      if (!handler.equals(clientHandler)) {
+        try {
+          if (handler.getUsername().equals(username)) {
+            return true;
+          }
+        } catch (NullPointerException ignored) {
+        }
+      }
+    }
+    return false;
   }
 
   public void acceptConnections() throws IOException {
@@ -60,16 +93,15 @@ public class GoServer {
   public void broadCastMessage(GoClientHandler clientHandler, String inputLine) {
     System.out.println(inputLine);
     for (GoClientHandler handler : handlers) {
-      if (!handler.equals(clientHandler)) {
-        handler.handleOutput(inputLine);
+      handler.handleOutput(inputLine);
       }
     }
-  }
 
   public void handleDisconnect(GoClientHandler clientHandler) {
+    handlers.remove(clientHandler);
     String disconnectMessage = clientHandler.getUsername() != null ?
-        clientHandler.getUsername() : "Unknown user";
-    disconnectMessage += " has disconnected from the server.\n";
+        clientHandler.getUsername() : "<Unknown user>";
+    disconnectMessage += " has disconnected from the server.";
     broadCastMessage(clientHandler, disconnectMessage);
   }
 
@@ -109,4 +141,5 @@ public class GoServer {
       System.out.println("Unable to start server!");
     }
   }
+
 }
