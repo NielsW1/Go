@@ -5,7 +5,7 @@ import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 
 /**
- * Example test class
+ * Example test class.
  */
 public class GoGuiIntegratorTest {
 
