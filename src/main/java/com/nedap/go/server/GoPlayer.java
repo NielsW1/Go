@@ -1,12 +1,17 @@
 package com.nedap.go.server;
 
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.Socket;
+
 public class GoPlayer {
   private String username;
   private String symbol;
   private int score;
+  private Socket clientSocket;
 
-  public GoPlayer(String username) {
-    this.username = username;
+  public GoPlayer(InetAddress address, int port) throws IOException {
+    clientSocket = new Socket(address, port);
   }
 
   public void setSymbol(String symbol) {
