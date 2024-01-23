@@ -1,15 +1,16 @@
 package com.nedap.go.client;
 
+import com.nedap.go.gamelogic.GoPlayer;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.Scanner;
 
-public class ClientTUI {
+public class GoClientTUI {
 
-  private GoPlayer player;
+  private GoClient client;
   private Scanner input;
 
-  public ClientTUI() {
+  public GoClientTUI() {
     input = new Scanner(System.in);
     initializeConnection();
   }
@@ -17,7 +18,7 @@ public class ClientTUI {
   public void initializeConnection(){
 
     System.out.println("Enter host address and port of the server you want to connect to:");
-    while (player == null) {
+    while (client == null) {
       if (input.hasNextLine()) {
         try {
           String[] parsedInput = input.nextLine().split("[^A-Za-z0-9.]+");
@@ -29,8 +30,9 @@ public class ClientTUI {
             continue;
           }
 
-          player = new GoPlayer(hostAddress, port, this);
-          System.out.println("Connected to server address " + hostAddress + " on port " + port);
+          client = new GoClient(hostAddress, port);
+          client.client = this;
+          System.out.println("Connection established with " + hostAddress + " on port " + port);
           runClient();
 
         } catch (IndexOutOfBoundsException e) {
@@ -53,12 +55,19 @@ public class ClientTUI {
       String inputLine;
       if (input.hasNextLine()) {
         inputLine = input.nextLine();
-        if (inputLine.equalsIgnoreCase("exit") || inputLine.equalsIgnoreCase("quit")) {
-          System.out.println("Closing client....");
-          player.closeConnection();
-          run = false;
+        switch (inputLine) {
+          case "EXIT":
+          case "QUIT":
+            System.out.println("Closing client....");
+            client.closeConnection();
+            run = false;
+            break;
+          case "HELP":
+            help();
+            break;
+          default:
+            client.handleOutput(inputLine);
         }
-        player.handleOutput(inputLine);
       }
     }
   }
@@ -67,7 +76,15 @@ public class ClientTUI {
     System.out.println(inputLine);
   }
 
+  public void help() {
+    System.out.println("""
+        LOGIN~<username> .............. Login to the server with your username.
+        QUEUE ......................... Join the queue to wait for a new game to start. Use the command again to exit the queue.
+        MOVE~<number> ................. Make a move at this specific coordinate.
+        MOVE~<(row,col)> .............. Make a move at position row, col.""");
+  }
+
   public static void main(String[] args) {
-    new ClientTUI();
+    new GoClientTUI();
   }
 }

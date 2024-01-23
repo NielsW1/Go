@@ -1,7 +1,9 @@
 package com.nedap.go.gamelogic;
 
-public class GoGameTUI {
-    public static void main(String[] args) {
+import java.io.IOException;
+import java.net.InetAddress;
 
+public class GoGameTUI {
+    public static void main(String[] args) throws IOException {
     }
 }

@@ -14,7 +14,6 @@ public class GoClientHandler implements Runnable{
   private BufferedReader in;
   private BufferedWriter out;
   private String username;
-  private boolean queued = false;
 
   public GoClientHandler(Socket socket, GoServer server) throws IOException {
     this.socket = socket;
@@ -42,48 +41,49 @@ public class GoClientHandler implements Runnable{
     return username;
   }
 
-  public boolean getQueued() {
-    return queued;
-  }
-
   public void handleHandshake() {
     waitOneSecond();
-    handleOutput(Protocol.hello() +
+    handleOutput(GoProtocol.HELLO + GoProtocol.SEPARATOR +
         "Welcome to the GO server! use LOGIN~<username> to log in.");
   }
 
   public void handleInput(String inputLine) {
-    String[] parsedInput = inputLine.split(Protocol.SEPARATOR);
+    String[] parsedInput = inputLine.split(GoProtocol.SEPARATOR);
     try {
       switch (parsedInput[0]) {
 
-        case Protocol.LOGIN:
+        case GoProtocol.LOGIN:
           if (username == null) {
             if (!server.userAlreadyLoggedIn(this, parsedInput[1])) {
               username = parsedInput[1];
-              server.broadCastMessage(this,
-                  Protocol.login() + username + " has joined the server.");
+              handleOutput(GoProtocol.ACCEPTED + GoProtocol.SEPARATOR + "Login successful.");
+              server.broadCastMessage(GoProtocol.LOGIN + GoProtocol.SEPARATOR + username + " has joined the server.");
             } else {
-              handleOutput(Protocol.error() + "User by that name already logged in!");
+              handleOutput(GoProtocol.REJECTED + GoProtocol.SEPARATOR + "User by that name already logged in!");
             }
           } else {
-            handleOutput(Protocol.error() +
+            handleOutput(GoProtocol.ERROR + GoProtocol.SEPARATOR +
                 "You are already logged in as " + username + "!");
           }
           break;
 
-        case Protocol.QUEUE:
+        case GoProtocol.QUEUE:
           if (username != null) {
-            if (queued) {
-              queued = false;
-              server.broadCastMessage(this, Protocol.queue() + username + " has left the queue.");
+            if (server.getQueue().contains(this)) {
+              server.removeFromQueue(this);
+              server.broadCastMessage(GoProtocol.QUEUED + GoProtocol.SEPARATOR + username + " has left the queue.");
             } else {
-              queued = true;
-              server.broadCastMessage(this, Protocol.queue() + username + " has joined the queue.");
-              handleOutput(server.getQueue());
+              server.addToQueue(this);
+              server.broadCastMessage(GoProtocol.QUEUED + GoProtocol.SEPARATOR + username + " has joined the queue.");
+              if (server.getQueue().size() == 2) {
+
+              }
             }
           }
           break;
+
+        case GoProtocol.MOVE:
+
       }
     } catch (IndexOutOfBoundsException ignored) {
     }

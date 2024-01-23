@@ -1,7 +1,5 @@
 package com.nedap.go.gamelogic;
 
-import com.nedap.go.client.GoPlayer;
-
 public class Move {
 
   private int row;
@@ -9,7 +7,6 @@ public class Move {
   private int linearPosition;
   private GoPlayer player;
   private String symbol = "•";
-  private boolean captured = false;
 
   public Move(int row, int col, int boardSize) {
     this.row = row;
@@ -17,9 +14,12 @@ public class Move {
     linearPosition = row * boardSize + col;
   }
 
-  public void setPlayer(GoPlayer player) {
-    this.player = player;
-    this.symbol = player.getSymbol();
+  public int getRow() {
+    return row;
+  }
+
+  public int getCol() {
+    return col;
   }
 
   public GoPlayer getPlayer() {
@@ -30,7 +30,13 @@ public class Move {
     return symbol;
   }
 
-  public boolean wasCaptured() {
-    return captured;
+  public void setPlayer(GoPlayer player) {
+    this.player = player;
+    if (player == null) {
+      this.symbol = "•";
+    } else {
+      this.symbol = player.getSymbol();
+    }
   }
+
 }

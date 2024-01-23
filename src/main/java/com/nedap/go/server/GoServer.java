@@ -1,12 +1,12 @@
 package com.nedap.go.server;
 
+import com.nedap.go.gamelogic.GoGame;
+import com.nedap.go.gamelogic.GoPlayer;
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.util.ArrayList;
-import java.util.InputMismatchException;
 import java.util.List;
 import java.util.Scanner;
 
@@ -14,36 +14,47 @@ public class GoServer {
 
   private boolean runServer = true;
   private final ServerSocket serverSocket;
-  public ArrayList<GoClientHandler> handlers;
+  public List<GoClientHandler> handlers;
+  private final List<GoClientHandler> playerQueue;
+  private List<GoGame> gamesList;
 
   public GoServer(int port) throws IOException {
     serverSocket = new ServerSocket(port);
     handlers = new ArrayList<>();
+    playerQueue = new ArrayList<>();
+    gamesList = new ArrayList<>();
   }
 
   public int getServerPort() {
     return serverSocket.getLocalPort();
   }
 
-  public List<GoClientHandler> getConnectedClients() {
+  public synchronized List<GoClientHandler> getHandlers() {
     return handlers;
   }
 
-  public String getQueue() {
-    StringBuilder currentQueue = new StringBuilder();
-    currentQueue.append("Currently queued players:\n");
-    for (GoClientHandler handler : handlers) {
-      if (handler.getQueued()) {
-        try {
-          currentQueue.append(handler.getUsername()).append("\n");
-        } catch (NullPointerException ignored) {
-        }
-      }
+  public List<GoClientHandler> getQueue() {
+    synchronized (playerQueue) {
+      return playerQueue;
     }
-    return currentQueue.toString().trim();
   }
 
-  public boolean userAlreadyLoggedIn(GoClientHandler clientHandler, String username) {
+  public void addToQueue(GoClientHandler clientHandler) {
+    synchronized (playerQueue) {
+      playerQueue.add(clientHandler);
+      if (playerQueue.size() > 1) {
+        startNewGame(playerQueue.get(0), playerQueue.get(1));
+      }
+    }
+  }
+
+  public void removeFromQueue(GoClientHandler clientHandler) {
+    synchronized (playerQueue) {
+      playerQueue.remove(clientHandler);
+    }
+  }
+
+  public synchronized boolean userAlreadyLoggedIn(GoClientHandler clientHandler, String username) {
     for (GoClientHandler handler : handlers) {
       if (!handler.equals(clientHandler)) {
         try {
@@ -55,6 +66,12 @@ public class GoServer {
       }
     }
     return false;
+  }
+
+  public void startNewGame(GoClientHandler player1, GoClientHandler player2) {
+    GoGame newGame = new GoGame(9, new GoPlayer(player1.getUsername()),
+        new GoPlayer(player2.getUsername()));
+    gamesList.add(newGame);
   }
 
   public void acceptConnections() throws IOException {
@@ -90,19 +107,19 @@ public class GoServer {
     }
   }
 
-  public void broadCastMessage(GoClientHandler clientHandler, String inputLine) {
+  public void broadCastMessage(String inputLine) {
     System.out.println(inputLine);
     for (GoClientHandler handler : handlers) {
       handler.handleOutput(inputLine);
-      }
     }
+  }
 
   public void handleDisconnect(GoClientHandler clientHandler) {
     handlers.remove(clientHandler);
     String disconnectMessage = clientHandler.getUsername() != null ?
         clientHandler.getUsername() : "<Unknown user>";
     disconnectMessage += " has disconnected from the server.";
-    broadCastMessage(clientHandler, disconnectMessage);
+    broadCastMessage(disconnectMessage);
   }
 
   public synchronized void closeServer() {
