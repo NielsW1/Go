@@ -7,7 +7,9 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 import java.util.Scanner;
 
 public class GoServer {
@@ -15,13 +17,13 @@ public class GoServer {
   private boolean runServer = true;
   private final ServerSocket serverSocket;
   public List<GoClientHandler> handlers;
-  private final List<GoClientHandler> playerQueue;
+  private final Queue<GoClientHandler> playerQueue;
   private List<GoGame> gamesList;
 
   public GoServer(int port) throws IOException {
     serverSocket = new ServerSocket(port);
     handlers = new ArrayList<>();
-    playerQueue = new ArrayList<>();
+    playerQueue = new LinkedList<>();
     gamesList = new ArrayList<>();
   }
 
@@ -33,7 +35,7 @@ public class GoServer {
     return handlers;
   }
 
-  public List<GoClientHandler> getQueue() {
+  public Queue<GoClientHandler> getQueue() {
     synchronized (playerQueue) {
       return playerQueue;
     }
@@ -43,7 +45,7 @@ public class GoServer {
     synchronized (playerQueue) {
       playerQueue.add(clientHandler);
       if (playerQueue.size() > 1) {
-        startNewGame(playerQueue.get(0), playerQueue.get(1));
+        startNewGame(playerQueue.poll(), playerQueue.poll());
       }
     }
   }
@@ -69,9 +71,13 @@ public class GoServer {
   }
 
   public void startNewGame(GoClientHandler player1, GoClientHandler player2) {
-    GoGame newGame = new GoGame(9, new GoPlayer(player1.getUsername()),
-        new GoPlayer(player2.getUsername()));
+    waitOneSecond();
+    GoGame newGame = new GoGame(9, player1, player2);
+    player1.setGame(newGame);
+    player2.setGame(newGame);
     gamesList.add(newGame);
+    broadCastMessage(GoProtocol.GAME_STARTED + GoProtocol.SEPARATOR +
+        "Player 1: " + player1.getUsername() + " Player 2: " + player2.getUsername());
   }
 
   public void acceptConnections() throws IOException {
@@ -128,6 +134,13 @@ public class GoServer {
         serverSocket.close();
       }
     } catch (IOException ignored) {
+    }
+  }
+
+  public void waitOneSecond() {
+    try {
+      Thread.sleep(1000);
+    } catch (InterruptedException ignored) {
     }
   }
 

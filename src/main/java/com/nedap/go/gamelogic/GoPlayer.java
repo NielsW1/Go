@@ -12,39 +12,32 @@ import java.net.Socket;
 
 public class GoPlayer {
   private String username;
-  private String symbol;
+  private Stone stone;
   private int score;
-  public GoGame game;
+  private GoGame game;
 
   public GoPlayer(String username) {
     this.username = username;
   }
 
-  public boolean doMove(int row, int col) {
-    if (game.getTurn().equals(this)) {
-      Move move = game.isValidMove(row, col);
-      if (move != null) {
-        game.makeMove(move);
-        return true;
-      }
-    }
-    return false;
+  public void setStone(Stone stone) {
+    this.stone = stone;
   }
 
-  public void setSymbol(String symbol) {
-    this.symbol = symbol;
+  public void setGame(GoGame game) {
+    this.game = game;
   }
 
-  public void incrementScore(int amount) {
-    score += amount;
+  public void incrementScore() {
+    score += 1;
+  }
+
+  public Stone getStone() {
+    return stone;
   }
 
   public String getUsername() {
     return username;
-  }
-
-  public String getSymbol() {
-    return symbol;
   }
 
   public int getScore() {
@@ -52,7 +45,7 @@ public class GoPlayer {
   }
 
   public void resetPlayer() {
-    symbol = null;
+    stone = null;
     score = 0;
   }
 }

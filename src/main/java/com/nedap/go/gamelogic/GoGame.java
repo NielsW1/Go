@@ -1,5 +1,8 @@
 package com.nedap.go.gamelogic;
 
+import com.nedap.go.Go;
+import com.nedap.go.client.GoClient;
+import com.nedap.go.server.GoClientHandler;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -9,29 +12,31 @@ public class GoGame {
 
   private int boardSize;
   private int passCounter;
-  private Move[][] board;
-  private Move previousMove;
+  private Goban goban;
   public GoPlayer currentTurn;
   private final GoPlayer player1;
   private final GoPlayer player2;
+  private List<GoClientHandler> handlers;
   public boolean fixTurn = false;
 
-  public GoGame(int boardSize, GoPlayer player1, GoPlayer player2) {
+  public GoGame(int boardSize, GoClientHandler handler1, GoClientHandler handler2) {
     this.boardSize = boardSize;
+    handlers = new ArrayList<>();
     passCounter = 0;
-    board = new Move[boardSize][boardSize];
+    goban = new Goban(boardSize);
 
-    for (int row = 0; row < boardSize; row++) {
-      for (int col = 0; col < boardSize; col++) {
-        board[row][col] = new Move(row, col, boardSize);
-      }
-    }
-
-    this.player1 = player1;
-    this.player2 = player2;
-    player1.setSymbol("●");
-    player2.setSymbol("○");
+    handlers.add(handler1);
+    handlers.add(handler2);
+    player1 = handler1.getPlayer();
+    player2 = handler2.getPlayer();
     currentTurn = player1;
+  }
+
+  public GoGame(int boardSize) {
+    this.boardSize = boardSize;
+    goban = new Goban(boardSize);
+    player1 = new GoPlayer("Henk");
+    player2 = new GoPlayer("Piet");
   }
 
   public GoPlayer getTurn() {
@@ -46,6 +51,10 @@ public class GoGame {
     }
   }
 
+  public List<GoClientHandler> getHandlers() {
+    return handlers;
+  }
+
   public void setTurn() {
     if (!fixTurn) {
       if (currentTurn.equals(player1)) {
@@ -56,124 +65,50 @@ public class GoGame {
     }
   }
 
-  public Move isValidMove(int row, int col) {
-    if (row >= 0 && row < boardSize &&
-        col >= 0 && col < boardSize &&
-        board[row][col].getPlayer() == null &&
-        !board[row][col].equals(previousMove)) {
-        return board[row][col];
-    }
-    return null;
-  }
-
-  public Move isValidMove(int linearPosition) {
-    return isValidMove(linearPosition / boardSize, linearPosition % boardSize);
-  }
-
   public void pass() {
     passCounter += 1;
     if (isGameOver()) {
-
+      endGame();
     } else {
       setTurn();
     }
   }
 
-  public void makeMove(Move move) {
-    if (previousMove != null && !previousMove.equals(move)) {
-      previousMove = null;
-    }
-    move.setPlayer(currentTurn);
-    passCounter = 0;
-    for (int i = 0; i < boardSize; i++) {
-      for (int j = 0; j < boardSize; j++) {
-        if (board[i][j].getPlayer() != null && board[i][j].getPlayer().equals(getOpponent())) {
-          getStoneChain(board[i][j], getOpponent());
-        }
-      }
-    }
-    for (int i = 0; i < boardSize; i++) {
-      for (int j = 0; j < boardSize; j++) {
-        if (board[i][j].getPlayer() != null && board[i][j].getPlayer().equals(getTurn())) {
-          getStoneChain(board[i][j], getTurn());
-        }
-      }
-    }
-    setTurn();
+  public void makeMove(int row, int col, GoPlayer player) throws IllegalMoveException, NotYourTurnException {
+    makeMove(row * boardSize + col, player);
   }
 
-  public void getStoneChain(Move move, GoPlayer playerTurn) {
-    List<Move> stoneChain = new ArrayList<>();
-    List<Move> reachedByChain = new ArrayList<>();
-    Queue<Move> frontOfChain = new LinkedList<>();
-    frontOfChain.add(move);
-    while (!frontOfChain.isEmpty()) {
-      Move currentMove = frontOfChain.remove();
-      stoneChain.add(currentMove);
-      for (Move neighbour : getNeighbours(currentMove.getRow(), currentMove.getCol())) {
-        if (playerTurn.equals(neighbour.getPlayer()) && !stoneChain.contains(neighbour)) {
-          frontOfChain.add(neighbour);
-        } else {
-          reachedByChain.add(neighbour);
-        }
-      }
-    }
-    if (captureCheck(reachedByChain)) {
-      capture(stoneChain, move);
-    }
-  }
-
-  public boolean captureCheck(List<Move> reachedByChain) {
-    for (Move move : reachedByChain) {
-      if (move.getPlayer() == null) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  public void capture(List<Move> stoneChain, Move move) {
-    if (stoneChain.size() == 1) {
-      previousMove = move;
-    }
-    for (Move m : stoneChain) {
-      m.setPlayer(null);
-    }
-  }
-
-  public List<Move> getNeighbours(int row, int col) {
-    List<Move> neighbourList = new ArrayList<>();
-    if (row > 0 && row < boardSize) {
-      neighbourList.add(board[row - 1][col]);
-      neighbourList.add(board[row + 1][col]);
-    } else if (row == 0) {
-      neighbourList.add(board[row + 1][col]);
+  public void makeMove(int linearPosition, GoPlayer player) throws IllegalMoveException, NotYourTurnException {
+    if (player.equals(getTurn()) && !isGameOver()) {
+      goban.makeMove(linearPosition, player);
+      passCounter = 0;
+      setTurn();
     } else {
-      neighbourList.add(board[row - 1][col]);
+      throw new NotYourTurnException();
     }
-    if (col > 0 && col < boardSize) {
-      neighbourList.add(board[row][col - 1]);
-      neighbourList.add(board[row][col + 1]);
-    } else if (col == 0) {
-      neighbourList.add(board[row][col + 1]);
-    } else {
-      neighbourList.add(board[row][col - 1]);
-    }
-    return neighbourList;
   }
 
   public boolean isGameOver() {
-    return passCounter >= 2;
+    return passCounter > 1;
+  }
+
+  public void endGame() {
+    goban.scoreGoban();
+    for (int position = 0; position < boardSize * boardSize; position++) {
+      if (goban.getStone(position) == player1.getStone()) {
+        player1.incrementScore();
+      } else if (goban.getStone(position) == player2.getStone()) {
+        player2.incrementScore();
+      }
+    }
   }
 
   public String toString() {
     StringBuilder boardString = new StringBuilder();
-    for (int row = 0; row < boardSize; row++) {
-      for (int col = 0; col < boardSize; col++) {
-        boardString.append(board[row][col].getSymbol()).append("  ");
-      }
-      boardString.append("\n");
+    for (int position = 0; position < boardSize * boardSize; position++) {
+      boardString.append(goban.getStone(position)).append("  ");
     }
+    boardString.append("\n");
     return boardString.toString();
   }
 }

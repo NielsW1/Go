@@ -1,5 +1,9 @@
 package com.nedap.go.server;
 
+import com.nedap.go.gamelogic.GoGame;
+import com.nedap.go.gamelogic.GoPlayer;
+import com.nedap.go.gamelogic.IllegalMoveException;
+import com.nedap.go.gamelogic.NotYourTurnException;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -14,6 +18,8 @@ public class GoClientHandler implements Runnable{
   private BufferedReader in;
   private BufferedWriter out;
   private String username;
+  private GoPlayer player;
+  private GoGame game;
 
   public GoClientHandler(Socket socket, GoServer server) throws IOException {
     this.socket = socket;
@@ -41,6 +47,15 @@ public class GoClientHandler implements Runnable{
     return username;
   }
 
+  public GoPlayer getPlayer() {
+    return player;
+  }
+
+  public void setGame(GoGame game) {
+    this.game = game;
+    player.setGame(game);
+  }
+
   public void handleHandshake() {
     waitOneSecond();
     handleOutput(GoProtocol.HELLO + GoProtocol.SEPARATOR +
@@ -49,43 +64,53 @@ public class GoClientHandler implements Runnable{
 
   public void handleInput(String inputLine) {
     String[] parsedInput = inputLine.split(GoProtocol.SEPARATOR);
-    try {
-      switch (parsedInput[0]) {
 
-        case GoProtocol.LOGIN:
-          if (username == null) {
-            if (!server.userAlreadyLoggedIn(this, parsedInput[1])) {
-              username = parsedInput[1];
-              handleOutput(GoProtocol.ACCEPTED + GoProtocol.SEPARATOR + "Login successful.");
-              server.broadCastMessage(GoProtocol.LOGIN + GoProtocol.SEPARATOR + username + " has joined the server.");
-            } else {
-              handleOutput(GoProtocol.REJECTED + GoProtocol.SEPARATOR + "User by that name already logged in!");
-            }
+    switch (parsedInput[0]) {
+      case GoProtocol.LOGIN:
+        if (username == null) {
+          if (!server.userAlreadyLoggedIn(this, parsedInput[1])) {
+            username = parsedInput[1];
+            player = new GoPlayer(username);
+            server.broadCastMessage(GoProtocol.ACCEPTED + GoProtocol.SEPARATOR + username + " has joined the server.");
           } else {
-            handleOutput(GoProtocol.ERROR + GoProtocol.SEPARATOR +
-                "You are already logged in as " + username + "!");
+            handleOutput(GoProtocol.REJECTED + GoProtocol.SEPARATOR + "User by that name already logged in!");
           }
-          break;
+        } else {
+          handleOutput(GoProtocol.ERROR + GoProtocol.SEPARATOR +
+              "You are already logged in as " + username + "!");
+        }
+        break;
 
-        case GoProtocol.QUEUE:
-          if (username != null) {
-            if (server.getQueue().contains(this)) {
-              server.removeFromQueue(this);
-              server.broadCastMessage(GoProtocol.QUEUED + GoProtocol.SEPARATOR + username + " has left the queue.");
-            } else {
-              server.addToQueue(this);
-              server.broadCastMessage(GoProtocol.QUEUED + GoProtocol.SEPARATOR + username + " has joined the queue.");
-              if (server.getQueue().size() == 2) {
-
-              }
-            }
+      case GoProtocol.QUEUE:
+        if (username != null) {
+          if (server.getQueue().contains(this)) {
+            server.removeFromQueue(this);
+            server.broadCastMessage(GoProtocol.QUEUED + GoProtocol.SEPARATOR + username + " has left the queue.");
+          } else {
+            server.addToQueue(this);
+            server.broadCastMessage(GoProtocol.QUEUED + GoProtocol.SEPARATOR + username + " has joined the queue.");
           }
-          break;
+        }
+        break;
 
-        case GoProtocol.MOVE:
-
-      }
-    } catch (IndexOutOfBoundsException ignored) {
+      case GoProtocol.MOVE:
+        String[] parsedCoordinates = parsedInput[1].split("(),+");
+        try {
+          if (parsedCoordinates.length > 1) {
+            game.makeMove(Integer.parseInt(parsedCoordinates[0]),
+                Integer.parseInt(parsedCoordinates[1]), player);
+          } else {
+            game.makeMove(Integer.parseInt(parsedCoordinates[0]), player);
+          }
+          for (GoClientHandler handler : game.getHandlers()) {
+            handler.handleOutput(game.toString());
+          }
+        } catch (NumberFormatException | IllegalMoveException e) {
+          handleOutput(GoProtocol.ERROR + GoProtocol.SEPARATOR + "Invalid move!");
+        } catch (NotYourTurnException e) {
+          handleOutput(GoProtocol.ERROR + GoProtocol.SEPARATOR + "It is not your turn!");
+        }
+        break;
     }
   }
 

@@ -1,8 +1,5 @@
 package com.nedap.go.client;
 
-import com.nedap.go.gamelogic.GoGame;
-import com.nedap.go.gamelogic.Move;
-import com.nedap.go.server.GoProtocol;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -12,7 +9,6 @@ import java.net.InetAddress;
 import java.net.Socket;
 
 public class GoClient {
-  private String username;
   private Socket clientSocket;
   private BufferedReader in;
   private BufferedWriter out;
@@ -43,10 +39,6 @@ public class GoClient {
   }
 
   public void handleInput(String inputLine) {
-    String[] parsedInput = inputLine.split(GoProtocol.SEPARATOR + "\\s");
-    if (parsedInput[0].equals(GoProtocol.LOGIN)) {
-      username = parsedInput[1];
-    }
     client.receiveInput(inputLine);
   }
 
@@ -58,10 +50,6 @@ public class GoClient {
     } catch (IOException e) {
       closeConnection();
     }
-  }
-
-  public String getUsername() {
-    return username;
   }
 
   public void closeConnection() {
