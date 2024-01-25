@@ -71,13 +71,22 @@ public class GoServer {
   }
 
   public void startNewGame(GoClientHandler player1, GoClientHandler player2) {
-    waitOneSecond();
     GoGame newGame = new GoGame(9, player1, player2);
     player1.setGame(newGame);
     player2.setGame(newGame);
     gamesList.add(newGame);
+    Thread thread = new Thread(newGame);
+    thread.start();
     broadCastMessage(GoProtocol.GAME_STARTED + GoProtocol.SEPARATOR +
         "Player 1: " + player1.getUsername() + " Player 2: " + player2.getUsername());
+    wait(500);
+    for (GoClientHandler handler : newGame.getHandlers()) {
+      handler.handleOutput(
+          GoProtocol.MAKE_MOVE + GoProtocol.SEPARATOR + newGame.getTurn().getUsername());
+    }
+  }
+  public void endGame(GoGame game) {
+    gamesList.remove(game);
   }
 
   public void acceptConnections() throws IOException {
@@ -137,9 +146,9 @@ public class GoServer {
     }
   }
 
-  public void waitOneSecond() {
+  public void wait(int ms) {
     try {
-      Thread.sleep(1000);
+      Thread.sleep(ms);
     } catch (InterruptedException ignored) {
     }
   }

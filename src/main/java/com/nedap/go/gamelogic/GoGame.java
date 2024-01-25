@@ -8,12 +8,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
-public class GoGame {
+public class GoGame extends Thread {
 
   private int boardSize;
   private int passCounter;
   private Goban goban;
-  public GoPlayer currentTurn;
+  private GoPlayer currentTurn;
   private final GoPlayer player1;
   private final GoPlayer player2;
   private List<GoClientHandler> handlers;
@@ -29,26 +29,27 @@ public class GoGame {
     handlers.add(handler2);
     player1 = handler1.getPlayer();
     player2 = handler2.getPlayer();
+    player1.setStone(Stone.BLACK);
+    player2.setStone(Stone.WHITE);
     currentTurn = player1;
   }
 
-  public GoGame(int boardSize) {
+  /**
+   * Second constructor for local testing purposes.
+   * @param boardSize
+   */
+  public GoGame(int boardSize, GoPlayer player1, GoPlayer player2) {
     this.boardSize = boardSize;
     goban = new Goban(boardSize);
-    player1 = new GoPlayer("Henk");
-    player2 = new GoPlayer("Piet");
+    this.player1 = player1;
+    this.player2 = player2;
+    this.player1.setStone(Stone.BLACK);
+    this.player2.setStone(Stone.WHITE);
+    currentTurn = player1;
   }
 
   public GoPlayer getTurn() {
     return currentTurn;
-  }
-
-  public GoPlayer getOpponent() {
-    if (currentTurn.equals(player1)) {
-      return player2;
-    } else {
-      return player1;
-    }
   }
 
   public List<GoClientHandler> getHandlers() {
@@ -65,20 +66,22 @@ public class GoGame {
     }
   }
 
-  public void pass() {
-    passCounter += 1;
-    if (isGameOver()) {
-      endGame();
+  public synchronized void pass(GoPlayer player) throws NotYourTurnException{
+    if (player.equals(getTurn())) {
+      passCounter += 1;
+      if (!isGameOver()) {
+        setTurn();
+      }
     } else {
-      setTurn();
+      throw new NotYourTurnException();
     }
   }
 
-  public void makeMove(int row, int col, GoPlayer player) throws IllegalMoveException, NotYourTurnException {
+  public synchronized void makeMove(int row, int col, GoPlayer player) throws IllegalMoveException, NotYourTurnException {
     makeMove(row * boardSize + col, player);
   }
 
-  public void makeMove(int linearPosition, GoPlayer player) throws IllegalMoveException, NotYourTurnException {
+  public synchronized void makeMove(int linearPosition, GoPlayer player) throws IllegalMoveException, NotYourTurnException {
     if (player.equals(getTurn()) && !isGameOver()) {
       goban.makeMove(linearPosition, player);
       passCounter = 0;
@@ -88,11 +91,15 @@ public class GoGame {
     }
   }
 
+  public void makeBulkMoves(int[] moves, GoPlayer player) {
+    goban.makeBulkMoves(moves, player);
+  }
+
   public boolean isGameOver() {
     return passCounter > 1;
   }
 
-  public void endGame() {
+  public GoPlayer endGame() {
     goban.scoreGoban();
     for (int position = 0; position < boardSize * boardSize; position++) {
       if (goban.getStone(position) == player1.getStone()) {
@@ -101,14 +108,33 @@ public class GoGame {
         player2.incrementScore();
       }
     }
+    return getWinner();
+  }
+
+  public GoPlayer getWinner() {
+    if (player1.getScore() > player2.getScore()) {
+      return player1;
+    } else if (player2.getScore() > player1.getScore()) {
+      return player2;
+    } else {
+      return null;
+    }
+  }
+
+  public String getScores() {
+    return "\nScores:\n" + player1.getUsername() + ": " + player1.getScore() + "\n" +
+        player2.getUsername() + ": " + player2.getScore();
+  }
+
+  public Goban getGoban() {
+    return goban;
+  }
+
+  public Goban getGobanCopy() {
+    return goban.gobanCopy();
   }
 
   public String toString() {
-    StringBuilder boardString = new StringBuilder();
-    for (int position = 0; position < boardSize * boardSize; position++) {
-      boardString.append(goban.getStone(position)).append("  ");
-    }
-    boardString.append("\n");
-    return boardString.toString();
+     return goban.toString();
   }
 }

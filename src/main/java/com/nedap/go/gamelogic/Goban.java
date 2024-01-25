@@ -35,17 +35,17 @@ public class Goban {
       placeStone(linearPosition, player.getStone());
 
       List<Integer> playerStones = new ArrayList<>();
-      List<Integer> oppStones = new ArrayList<>();
+      List<Integer> opponentStones = new ArrayList<>();
 
       for (int neighbour : getNeighbours(linearPosition)) {
         if (getStone(neighbour) == player.getStone()) {
           playerStones.add(neighbour);
         } else if (getStone(neighbour) == player.getStone().other()) {
-          oppStones.add(neighbour);
+          opponentStones.add(neighbour);
         }
       }
 
-      for (int position : oppStones) {
+      for (int position : opponentStones) {
         captureStones(position, player.getStone().other());
       }
 
@@ -57,8 +57,20 @@ public class Goban {
     }
   }
 
+  public void makeBulkMoves(int[] moves, GoPlayer player) {
+    for (int move : moves) {
+      try {
+        makeMove(move, player);
+      } catch (IllegalMoveException ignored) {}
+    }
+  }
+
   public Stone getStone(int linearPosition) {
     return goban[linearPosition / boardSize][linearPosition % boardSize];
+  }
+
+  public Stone getStone(int row, int col) {
+    return goban[row][col];
   }
 
   public void placeStone(int linearPosition, Stone stone) {
@@ -109,7 +121,8 @@ public class Goban {
       int adjustedRow = row + dr[i];
       int adjustedCol = col + dc[i];
 
-      if (adjustedRow >= 0 && adjustedRow < boardSize && adjustedCol >= 0 && adjustedCol < boardSize) {
+      if (adjustedRow >= 0 && adjustedRow < boardSize && adjustedCol >= 0
+          && adjustedCol < boardSize) {
         neighbourList.add(adjustedRow * boardSize + adjustedCol);
       }
     }
@@ -131,7 +144,6 @@ public class Goban {
         }
       }
     }
-
   }
 
   public boolean territoryBelongsToPlayer(Stone stone, List<Integer> adjacentStone) {
@@ -141,5 +153,51 @@ public class Goban {
       }
     }
     return true;
+  }
+
+  public Goban gobanCopy() {
+    Goban gobanCopy = new Goban(boardSize);
+    for (int i = 0; i < boardSize; i++) {
+      for (int j = 0; j < boardSize; j++) {
+         gobanCopy.goban[i][j] = goban[i][j];
+      }
+    }
+    return gobanCopy;
+  }
+
+  public String toString() {
+    StringBuilder boardString = new StringBuilder();
+
+    boardString.append("   ");
+    for (int n = 0; n < boardSize; n++) {
+      boardString.append(n).append("  ");
+    }
+    boardString.append("\n");
+
+    for (int row = 0; row < boardSize; row++) {
+      boardString.append(row).append("  ");
+      for (int col = 0; col < boardSize; col++) {
+        boardString.append(getStone(row, col)).append("  ");
+      }
+      if (row < boardSize - 1){
+        boardString.append("\n");
+      }
+    }
+    return boardString.toString();
+  }
+
+  public String toStringTest() {
+    StringBuilder boardString = new StringBuilder();
+    for (int row = 0; row < boardSize; row++) {
+      for (int col = 0; col < boardSize; col++) {
+        boardString.append(getStone(row, col)).append("  ");
+      }
+      for (int n = 0; n < boardSize; n++) {
+        int position = row * boardSize + n;
+        boardString.append(position < 10 ? position + " " : position).append("  ");
+      }
+      boardString.append("\n");
+    }
+    return boardString.toString().trim();
   }
 }

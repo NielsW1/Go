@@ -14,12 +14,12 @@ public enum Stone {
   }
 
   public String toString() {
-    if (this == EMPTY) {
-      return "•";
+    if (this == BLACK) {
+      return "○";
     } else if (this == WHITE) {
       return "●";
     } else {
-      return "○";
+      return "•";
     }
   }
 }
