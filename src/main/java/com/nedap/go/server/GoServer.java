@@ -1,7 +1,6 @@
 package com.nedap.go.server;
 
 import com.nedap.go.gamelogic.GoGame;
-import com.nedap.go.gamelogic.GoPlayer;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -10,29 +9,23 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
-import java.util.Scanner;
 
-public class GoServer {
+public class GoServer implements Runnable {
 
-  private boolean runServer = true;
   private final ServerSocket serverSocket;
-  public List<GoClientHandler> handlers;
+  private List<GoClientHandler> handlers;
   private final Queue<GoClientHandler> playerQueue;
-  private List<GoGame> gamesList;
+  private GoServerTUI serverTUI;
 
-  public GoServer(int port) throws IOException {
+  public GoServer(int port, GoServerTUI serverTUI) throws IOException {
     serverSocket = new ServerSocket(port);
     handlers = new ArrayList<>();
     playerQueue = new LinkedList<>();
-    gamesList = new ArrayList<>();
+    this.serverTUI = serverTUI;
   }
 
   public int getServerPort() {
     return serverSocket.getLocalPort();
-  }
-
-  public synchronized List<GoClientHandler> getHandlers() {
-    return handlers;
   }
 
   public Queue<GoClientHandler> getQueue() {
@@ -59,34 +52,30 @@ public class GoServer {
   public synchronized boolean userAlreadyLoggedIn(GoClientHandler clientHandler, String username) {
     for (GoClientHandler handler : handlers) {
       if (!handler.equals(clientHandler)) {
-        try {
-          if (handler.getUsername().equals(username)) {
-            return true;
-          }
-        } catch (NullPointerException ignored) {
+        if (handler.getUsername().equals(username)) {
+          return true;
         }
       }
     }
     return false;
   }
 
-  public void startNewGame(GoClientHandler player1, GoClientHandler player2) {
+  public synchronized void startNewGame(GoClientHandler player1, GoClientHandler player2) {
     GoGame newGame = new GoGame(9, player1, player2);
     player1.setGame(newGame);
     player2.setGame(newGame);
-    gamesList.add(newGame);
-    Thread thread = new Thread(newGame);
-    thread.start();
-    broadCastMessage(GoProtocol.GAME_STARTED + GoProtocol.SEPARATOR +
-        "Player 1: " + player1.getUsername() + " Player 2: " + player2.getUsername());
+    broadCastMessage(protocolMessage(GoProtocol.GAME_STARTED,
+        "Player 1: " + player1.getUsername() + "; Player 2: " + player2.getUsername()));
     wait(500);
-    for (GoClientHandler handler : newGame.getHandlers()) {
-      handler.handleOutput(
-          GoProtocol.MAKE_MOVE + GoProtocol.SEPARATOR + newGame.getTurn().getUsername());
-    }
+    player1.broadCastToPlayers(protocolMessage(
+        GoProtocol.MAKE_MOVE, newGame.getTurn().getUsername()));
   }
-  public void endGame(GoGame game) {
-    gamesList.remove(game);
+
+  public synchronized void endGame(GoGame game) {
+    for (GoClientHandler handler : game.getHandlers()) {
+      handler.getPlayer().resetPlayer();
+      handler.setGame(null);
+    }
   }
 
   public void acceptConnections() throws IOException {
@@ -105,39 +94,44 @@ public class GoServer {
       handlers.add(clientHandler);
       Thread thread = new Thread(clientHandler);
       thread.start();
+      serverTUI.receiveMessage(clientHandler + " connected to server");
     } catch (IOException e) {
       System.out.println("Something went wrong initializing the connection.");
     }
   }
 
-  public void startServer() {
-    while (runServer) {
+  @Override
+  public void run() {
+    while (!serverSocket.isClosed()) {
       try {
         acceptConnections();
       } catch (IOException e) {
-        System.out.println("Something went wrong, closing the server");
-        runServer = false;
         closeServer();
       }
     }
   }
 
-  public void broadCastMessage(String inputLine) {
-    System.out.println(inputLine);
+  public synchronized void broadCastMessage(String inputLine) {
+    serverTUI.receiveMessage(inputLine);
     for (GoClientHandler handler : handlers) {
       handler.handleOutput(inputLine);
     }
   }
 
-  public void handleDisconnect(GoClientHandler clientHandler) {
+  public synchronized void handleDisconnect(GoClientHandler clientHandler) {
     handlers.remove(clientHandler);
-    String disconnectMessage = clientHandler.getUsername() != null ?
-        clientHandler.getUsername() : "<Unknown user>";
-    disconnectMessage += " has disconnected from the server.";
-    broadCastMessage(disconnectMessage);
+
+    try {
+      endGame(clientHandler.getGame());
+    } catch (NullPointerException ignored) {
+    }
   }
 
-  public synchronized void closeServer() {
+  public String protocolMessage(String type, String message) {
+    return type + GoProtocol.SEPARATOR + message;
+  }
+
+  public void closeServer() {
     try {
       if (!serverSocket.isClosed()) {
         serverSocket.close();
@@ -152,33 +146,4 @@ public class GoServer {
     } catch (InterruptedException ignored) {
     }
   }
-
-  public static void main(String[] args) {
-    boolean validPort = false;
-    int port = -1;
-    Scanner input = new Scanner(System.in);
-    System.out.println("Enter a port to start listening for connections:");
-    while (!validPort) {
-      if (input.hasNextLine()) {
-        try {
-          port = Integer.parseInt(input.nextLine());
-          if (port < 0 || port > 65535) {
-            System.out.println("Valid port numbers range between 0 and 65535.");
-            continue;
-          }
-          validPort = true;
-        } catch (NumberFormatException e) {
-          System.out.println("Not a valid port.");
-        }
-      }
-    }
-    try {
-      GoServer server = new GoServer(port);
-      System.out.println("Starting server on port " + server.getServerPort());
-      server.startServer();
-    } catch (IOException e) {
-      System.out.println("Unable to start server!");
-    }
-  }
-
 }

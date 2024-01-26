@@ -14,7 +14,6 @@ public class GoPlayer {
   private String username;
   private Stone stone;
   private int score;
-  private GoGame game;
 
   public GoPlayer(String username) {
     this.username = username;
@@ -22,10 +21,6 @@ public class GoPlayer {
 
   public void setStone(Stone stone) {
     this.stone = stone;
-  }
-
-  public void setGame(GoGame game) {
-    this.game = game;
   }
 
   public void incrementScore() {

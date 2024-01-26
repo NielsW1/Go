@@ -87,7 +87,7 @@ public class Goban {
       for (int neighbour : getNeighbours(currentPosition)) {
         if (stone.equals(getStone(neighbour)) && !stoneChain.containsStone(neighbour)) {
           frontOfChain.add(neighbour);
-        } else {
+        } else if (!stone.equals(getStone(neighbour))) {
           stoneChain.addAdjacent(neighbour);
         }
       }
@@ -114,12 +114,12 @@ public class Goban {
     int row = linearPosition / boardSize;
     int col = linearPosition % boardSize;
     List<Integer> neighbourList = new ArrayList<>();
-    int[] dr = {-1, 1, 0, 0};
-    int[] dc = {0, 0, -1, 1};
+    int[] drow = {-1, 1, 0, 0};
+    int[] dcol = {0, 0, -1, 1};
 
     for (int i = 0; i < 4; i++) {
-      int adjustedRow = row + dr[i];
-      int adjustedCol = col + dc[i];
+      int adjustedRow = row + drow[i];
+      int adjustedCol = col + dcol[i];
 
       if (adjustedRow >= 0 && adjustedRow < boardSize && adjustedCol >= 0
           && adjustedCol < boardSize) {
@@ -159,7 +159,7 @@ public class Goban {
     Goban gobanCopy = new Goban(boardSize);
     for (int i = 0; i < boardSize; i++) {
       for (int j = 0; j < boardSize; j++) {
-         gobanCopy.goban[i][j] = goban[i][j];
+        gobanCopy.goban[i][j] = goban[i][j];
       }
     }
     return gobanCopy;

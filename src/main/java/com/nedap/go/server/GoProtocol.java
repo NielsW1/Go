@@ -19,6 +19,5 @@ public class GoProtocol {
 
 
   private GoProtocol() {
-
   }
 }

@@ -8,7 +8,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
-public class GoGame extends Thread {
+public class GoGame {
 
   private int boardSize;
   private int passCounter;
@@ -17,6 +17,7 @@ public class GoGame extends Thread {
   private final GoPlayer player1;
   private final GoPlayer player2;
   private List<GoClientHandler> handlers;
+  private boolean gameOver;
   public boolean fixTurn = false;
 
   public GoGame(int boardSize, GoClientHandler handler1, GoClientHandler handler2) {
@@ -32,6 +33,7 @@ public class GoGame extends Thread {
     player1.setStone(Stone.BLACK);
     player2.setStone(Stone.WHITE);
     currentTurn = player1;
+    gameOver = false;
   }
 
   /**
@@ -46,6 +48,7 @@ public class GoGame extends Thread {
     this.player1.setStone(Stone.BLACK);
     this.player2.setStone(Stone.WHITE);
     currentTurn = player1;
+    gameOver = false;
   }
 
   public GoPlayer getTurn() {
@@ -66,10 +69,12 @@ public class GoGame extends Thread {
     }
   }
 
-  public synchronized void pass(GoPlayer player) throws NotYourTurnException{
+  public synchronized void pass(GoPlayer player) throws NotYourTurnException {
     if (player.equals(getTurn())) {
       passCounter += 1;
-      if (!isGameOver()) {
+      if (passCounter > 1) {
+        setGameOver();
+      } else {
         setTurn();
       }
     } else {
@@ -96,7 +101,11 @@ public class GoGame extends Thread {
   }
 
   public boolean isGameOver() {
-    return passCounter > 1;
+    return gameOver;
+  }
+
+  public void setGameOver() {
+    gameOver = true;
   }
 
   public GoPlayer endGame() {

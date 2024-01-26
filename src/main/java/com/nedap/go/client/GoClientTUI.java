@@ -15,8 +15,7 @@ public class GoClientTUI {
     initializeConnection();
   }
 
-  public void initializeConnection(){
-
+  public void initializeConnection() {
     System.out.println("Enter host address and port of the server you want to connect to:");
     while (client == null) {
       if (input.hasNextLine()) {
@@ -55,7 +54,7 @@ public class GoClientTUI {
       String inputLine;
       if (input.hasNextLine()) {
         inputLine = input.nextLine();
-        switch (inputLine) {
+        switch (inputLine.toUpperCase()) {
           case "EXIT":
           case "QUIT":
             System.out.println("Closing client....");
@@ -78,10 +77,13 @@ public class GoClientTUI {
 
   public void help() {
     System.out.println("""
+        Valid commands:
+                
         LOGIN~<username> .............. Login to the server with your username.
         QUEUE ......................... Join the queue to wait for a new game to start. Use the command again to exit the queue.
         MOVE~<number> ................. Make a move at this specific coordinate.
-        MOVE~<(row,col)> .............. Make a move at position row, col.""");
+        MOVE~<col, row> .............. Make a move at position row, col.
+        PASS .......................... Pass your current move.""");
   }
 
   public static void main(String[] args) {
