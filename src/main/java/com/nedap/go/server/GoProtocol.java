@@ -16,6 +16,7 @@ public class GoProtocol {
   public static final String GAME_OVER = "GAME OVER";
   public static final String DISCONNECTED = "DISCONNECTED";
   public static final String PASS = "PASS";
+  public static final String LOG = "[LOG] ";
 
 
   private GoProtocol() {

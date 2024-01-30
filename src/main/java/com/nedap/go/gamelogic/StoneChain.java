@@ -1,20 +1,21 @@
 package com.nedap.go.gamelogic;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 public class StoneChain {
 
-  private List<Integer> stoneChain;
-  private List<Integer> adjacentStones;
+  private final HashSet<Integer> stones;
+  private final HashSet<Integer> adjacentStones;
 
   public StoneChain() {
-    stoneChain = new ArrayList<>();
-    adjacentStones = new ArrayList<>();
+    stones = new HashSet<>();
+    adjacentStones = new HashSet<>();
   }
 
   public void addStone(int position) {
-    stoneChain.add(position);
+    stones.add(position);
   }
 
   public void addAdjacent(int position) {
@@ -22,14 +23,14 @@ public class StoneChain {
   }
 
   public boolean containsStone(int position) {
-    return stoneChain.contains(position);
+    return stones.contains(position);
   }
 
-  public List<Integer> getStoneChain() {
-    return stoneChain;
+  public HashSet<Integer> getStoneChain() {
+    return stones;
   }
 
-  public List<Integer> getAdjacentStones() {
+  public HashSet<Integer> getAdjacentStones() {
     return adjacentStones;
   }
 }

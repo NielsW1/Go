@@ -7,6 +7,7 @@ public class GoServerTUI {
 
   private Scanner input;
   private GoServer server;
+  private boolean runServer = true;
 
   public GoServerTUI() {
     input = new Scanner(System.in);
@@ -16,31 +17,36 @@ public class GoServerTUI {
   public void startServer() {
     int port;
     System.out.println("Enter a port to start listening for connections:");
-    while (server == null) {
+    while (server == null && runServer) {
       if (input.hasNextLine()) {
-        try {
-          port = Integer.parseInt(input.nextLine());
-          if (port < 0 || port > 65535) {
-            System.out.println("Valid port numbers range between 0 and 65535.");
-            continue;
-          }
-          server = new GoServer(port, this);
-          System.out.println("Starting server on port " + server.getServerPort());
-          Thread thread = new Thread(server);
-          thread.start();
-          runServerTUI();
+        String command = input.nextLine();
+        if (command.equalsIgnoreCase("exit") || command.equalsIgnoreCase("quit")) {
+          runServer = false;
+          System.out.println("Closing serverTUI...");
+        } else {
+          try {
+            port = Integer.parseInt(command);
+            if (port < 0 || port > 65535) {
+              System.out.println("Valid port numbers range between 0 and 65535.");
+              continue;
+            }
+            server = new GoServer(port, this);
+            System.out.println("Starting server on port " + server.getServerPort());
+            Thread thread = new Thread(server);
+            thread.start();
+            runServerTUI();
 
-        } catch (NumberFormatException e) {
-          System.out.println("Not a valid port.");
-        } catch (IOException e) {
-          System.out.println("Unable to start server.");
+          } catch (NumberFormatException e) {
+            System.out.println("Not a valid port.");
+          } catch (IOException e) {
+            System.out.println("Unable to start server.");
+          }
         }
       }
     }
   }
 
   public void runServerTUI() {
-    boolean runServer = true;
     System.out.println("Use <EXIT> or <QUIT> to close the server.");
     while (runServer) {
       String inputLine;

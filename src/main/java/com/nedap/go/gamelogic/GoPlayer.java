@@ -14,6 +14,7 @@ public class GoPlayer {
   private String username;
   private Stone stone;
   private int score;
+  private String color;
 
   public GoPlayer(String username) {
     this.username = username;
@@ -21,6 +22,7 @@ public class GoPlayer {
 
   public void setStone(Stone stone) {
     this.stone = stone;
+    color = stone.getColor();
   }
 
   public void incrementScore() {
@@ -29,6 +31,10 @@ public class GoPlayer {
 
   public Stone getStone() {
     return stone;
+  }
+
+  public String getColor() {
+    return color;
   }
 
   public String getUsername() {
@@ -41,6 +47,7 @@ public class GoPlayer {
 
   public void resetPlayer() {
     stone = null;
+    color = null;
     score = 0;
   }
 }

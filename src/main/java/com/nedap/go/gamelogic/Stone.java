@@ -13,6 +13,16 @@ public enum Stone {
     }
   }
 
+  public String getColor() {
+    if (this == BLACK) {
+      return "BLACK";
+    } else if (this == WHITE) {
+      return "WHITE";
+    } else {
+      return null;
+    }
+  }
+
   public String toString() {
     if (this == BLACK) {
       return "○";

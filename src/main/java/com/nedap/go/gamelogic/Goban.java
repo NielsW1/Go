@@ -1,6 +1,8 @@
 package com.nedap.go.gamelogic;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -8,8 +10,8 @@ import java.util.Queue;
 public class Goban {
 
   private Stone[][] goban;
-  private int boardSize;
-  private int previousMove = -1;
+  private final int boardSize;
+  private int koMove = -1;
 
   public Goban(int boardSize) {
     this.boardSize = boardSize;
@@ -23,44 +25,47 @@ public class Goban {
 
   public boolean isValidMove(int linearPosition) {
     return linearPosition >= 0 && linearPosition < boardSize * boardSize &&
-        getStone(linearPosition) == Stone.EMPTY &&
-        previousMove != linearPosition;
+        getStone(linearPosition) == Stone.EMPTY && koMove != linearPosition;
   }
 
-  public void makeMove(int linearPosition, GoPlayer player) throws IllegalMoveException {
-    if (previousMove != -1 && linearPosition != previousMove) {
-      previousMove = -1;
-    }
-    if (isValidMove(linearPosition)) {
-      placeStone(linearPosition, player.getStone());
 
+  public void makeMove(int linearPosition, Stone stone) throws IllegalMoveException {
+    if (isValidMove(linearPosition)) {
+      koMove = -1;
       List<Integer> playerStones = new ArrayList<>();
       List<Integer> opponentStones = new ArrayList<>();
+      List<Integer> neighbours = getNeighbours(linearPosition);
 
-      for (int neighbour : getNeighbours(linearPosition)) {
-        if (getStone(neighbour) == player.getStone()) {
+      placeStone(linearPosition, stone);
+
+      for (int neighbour : neighbours) {
+        if (getStone(neighbour) == stone) {
           playerStones.add(neighbour);
-        } else if (getStone(neighbour) == player.getStone().other()) {
+        } else if (getStone(neighbour) == stone.other()) {
           opponentStones.add(neighbour);
         }
       }
 
+      if (neighbours.size() == opponentStones.size()) {
+        playerStones.add(linearPosition);
+      }
+
       for (int position : opponentStones) {
-        captureStones(position, player.getStone().other());
+        captureStones(position, stone.other());
       }
 
       for (int position : playerStones) {
-        captureStones(position, player.getStone());
+        captureStones(position, stone);
       }
     } else {
-      throw new IllegalMoveException();
+      throw new IllegalMoveException("Invalid move! Try again.");
     }
   }
 
   public void makeBulkMoves(int[] moves, GoPlayer player) {
     for (int move : moves) {
       try {
-        makeMove(move, player);
+        makeMove(move, player.getStone());
       } catch (IllegalMoveException ignored) {}
     }
   }
@@ -81,12 +86,15 @@ public class Goban {
     StoneChain stoneChain = new StoneChain();
     Queue<Integer> frontOfChain = new LinkedList<>();
     frontOfChain.add(linearPosition);
+
     while (!frontOfChain.isEmpty()) {
       int currentPosition = frontOfChain.poll();
       stoneChain.addStone(currentPosition);
+
       for (int neighbour : getNeighbours(currentPosition)) {
         if (stone.equals(getStone(neighbour)) && !stoneChain.containsStone(neighbour)) {
           frontOfChain.add(neighbour);
+
         } else if (!stone.equals(getStone(neighbour))) {
           stoneChain.addAdjacent(neighbour);
         }
@@ -103,7 +111,7 @@ public class Goban {
       }
     }
     if (stoneChain.getStoneChain().size() == 1) {
-      previousMove = linearPosition;
+      koMove = linearPosition;
     }
     for (int position : stoneChain.getStoneChain()) {
       placeStone(position, Stone.EMPTY);
@@ -113,9 +121,9 @@ public class Goban {
   public List<Integer> getNeighbours(int linearPosition) {
     int row = linearPosition / boardSize;
     int col = linearPosition % boardSize;
-    List<Integer> neighbourList = new ArrayList<>();
     int[] drow = {-1, 1, 0, 0};
     int[] dcol = {0, 0, -1, 1};
+    List<Integer> neighbourList = new ArrayList<>();
 
     for (int i = 0; i < 4; i++) {
       int adjustedRow = row + drow[i];
@@ -130,23 +138,30 @@ public class Goban {
   }
 
   public void scoreGoban() {
+    HashSet<Integer> neutralTerritory = new HashSet<>();
+
     for (int position = 0; position < boardSize * boardSize; position++) {
-      if (getStone(position) == Stone.EMPTY) {
+      if (getStone(position) == Stone.EMPTY && !neutralTerritory.contains(position)) {
         StoneChain emptyTerritory = getStoneChain(position, Stone.EMPTY);
+
         if (territoryBelongsToPlayer(Stone.BLACK, emptyTerritory.getAdjacentStones())) {
           for (int pos : emptyTerritory.getStoneChain()) {
             placeStone(pos, Stone.BLACK);
           }
+
         } else if (territoryBelongsToPlayer(Stone.WHITE, emptyTerritory.getAdjacentStones())) {
           for (int pos : emptyTerritory.getStoneChain()) {
             placeStone(pos, Stone.WHITE);
           }
+
+        } else {
+          neutralTerritory.addAll(emptyTerritory.getStoneChain());
         }
       }
     }
   }
 
-  public boolean territoryBelongsToPlayer(Stone stone, List<Integer> adjacentStone) {
+  public boolean territoryBelongsToPlayer(Stone stone, HashSet<Integer> adjacentStone) {
     for (int position : adjacentStone) {
       if (getStone(position) != stone) {
         return false;
@@ -157,6 +172,7 @@ public class Goban {
 
   public Goban gobanCopy() {
     Goban gobanCopy = new Goban(boardSize);
+
     for (int i = 0; i < boardSize; i++) {
       for (int j = 0; j < boardSize; j++) {
         gobanCopy.goban[i][j] = goban[i][j];
@@ -179,7 +195,7 @@ public class Goban {
       for (int col = 0; col < boardSize; col++) {
         boardString.append(getStone(row, col)).append("  ");
       }
-      if (row < boardSize - 1){
+      if (row < boardSize - 1) {
         boardString.append("\n");
       }
     }
