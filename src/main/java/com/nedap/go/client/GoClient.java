@@ -1,6 +1,7 @@
 package com.nedap.go.client;
 
 import com.nedap.go.Go;
+import com.nedap.go.gamelogic.GoGame;
 import com.nedap.go.gamelogic.Goban;
 import com.nedap.go.gamelogic.IllegalMoveException;
 import com.nedap.go.gamelogic.NotYourTurnException;
@@ -26,7 +27,6 @@ public class GoClient {
   private boolean gameStarted = false;
   private boolean currentTurn;
   private boolean queued;
-  private Stone stone;
   private Goban goban;
 
   public GoClient(InetAddress address, int port, GoClientTUI client) throws IOException {
@@ -65,7 +65,8 @@ public class GoClient {
   public void handleInput(String inputLine) {
     String[] parsedInput = inputLine.split(GoProtocol.SEPARATOR);
     try {
-      switch (parsedInput[0]) {
+      switch (parsedInput[0].toUpperCase()) {
+
         case GoProtocol.ACCEPTED:
           if (parsedInput[1].equals(tempUsername)) {
             username = tempUsername;
@@ -154,7 +155,7 @@ public class GoClient {
             } else {
               position = Integer.parseInt(parsedPosition[0]);
             }
-            if (position < 0 || position >= boardSize * boardSize) {
+            if (!goban.isValidMove(position)) {
               throw new IllegalMoveException("Invalid move! Try again.");
             }
           }

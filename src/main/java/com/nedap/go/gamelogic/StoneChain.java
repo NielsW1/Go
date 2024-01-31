@@ -4,6 +4,11 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
+/**
+ * a StoneChain contains two HashSets, one for all stones belonging to a specific chain
+ * and one for all stones (or empty positions) surrounding this StoneChain.
+ */
+
 public class StoneChain {
 
   private final HashSet<Integer> stones;

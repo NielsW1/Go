@@ -82,6 +82,18 @@ public class Goban {
     goban[linearPosition / boardSize][linearPosition % boardSize] = stone;
   }
 
+  /**
+   * Creates a StoneChain object for a stone belonging to the current player
+   * starting from linearPosition.
+   * Checks every neighbour starting from linearPosition and adds it to
+   * the stones HashSet if the neighbour is the same as stone. Otherwise, the neighbour
+   * is added to the adjacentStones HashSet. The method will keep checking neighbours
+   * until no more surrounding stones belong to the current player.
+   * @param linearPosition
+   * @param stone
+   * @return StoneChain
+   */
+
   public StoneChain getStoneChain(int linearPosition, Stone stone) {
     StoneChain stoneChain = new StoneChain();
     Queue<Integer> frontOfChain = new LinkedList<>();
@@ -103,6 +115,15 @@ public class Goban {
     return stoneChain;
   }
 
+  /**
+   * Gets the StoneChain starting from linearPosition and checks if all adjacent stones
+   * belong to the other player. If true, removes all stones in the StoneChain from the board.
+   * If only a single stone is captured in this move, sets the koMove to the position of the
+   * captured stone.
+   * @param linearPosition
+   * @param stone
+   */
+
   public void captureStones(int linearPosition, Stone stone) {
     StoneChain stoneChain = getStoneChain(linearPosition, stone);
     for (int position : stoneChain.getAdjacentStones()) {
@@ -117,6 +138,13 @@ public class Goban {
       placeStone(position, Stone.EMPTY);
     }
   }
+
+  /**
+   * Gets all neighbouring positions of linearPosition on the board, and returns them
+   * as a list. Adjusts for corners and edges based on the drow and dcol arrays.
+   * @param linearPosition
+   * @return list of all neighbouring positions on the board.
+   */
 
   public List<Integer> getNeighbours(int linearPosition) {
     int row = linearPosition / boardSize;
@@ -136,6 +164,15 @@ public class Goban {
     }
     return neighbourList;
   }
+
+  /**
+   * Scores the Goban. Checks each empty position on the board and gets the StoneChain
+   * from this position. If all stones adjacent to this (empty) StoneChain belong to one
+   * player, the territory belongs to that player and the entire StoneChain
+   * is filled with that player's stones. If the StoneChain
+   * is surrounded by stones from both players, the territory is neutral and the StoneChain
+   * remains empty.
+   */
 
   public void scoreGoban() {
     HashSet<Integer> neutralTerritory = new HashSet<>();
@@ -200,20 +237,5 @@ public class Goban {
       }
     }
     return boardString.toString();
-  }
-
-  public String toStringTest() {
-    StringBuilder boardString = new StringBuilder();
-    for (int row = 0; row < boardSize; row++) {
-      for (int col = 0; col < boardSize; col++) {
-        boardString.append(getStone(row, col)).append("  ");
-      }
-      for (int n = 0; n < boardSize; n++) {
-        int position = row * boardSize + n;
-        boardString.append(position < 10 ? position + " " : position).append("  ");
-      }
-      boardString.append("\n");
-    }
-    return boardString.toString().trim();
   }
 }

@@ -99,7 +99,8 @@ public class GoClientTUI {
         MOVE~<number> ................. Make a move at this specific coordinate.
         MOVE~<col, row> ............... Make a move at position col, row.
         PASS .......................... Pass your current move.
-        RESIGN ........................ Resign the game, the opponent will automatically win""");
+        RESIGN ........................ Forfeit the game, the opponent will automatically win
+        EXIT, QUIT .................... Close the client, disconnecting you from the server.""");
   }
 
   public static void main(String[] args) {

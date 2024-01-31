@@ -13,29 +13,18 @@ public class GoGame {
   private final GoPlayer player1;
   private final GoPlayer player2;
   private List<GoClientHandler> handlers;
-  private boolean gameOver = false;
   public boolean fixTurn = false;
 
   public GoGame(int boardSize, GoClientHandler handler1, GoClientHandler handler2) {
-    this.boardSize = boardSize;
+    this(boardSize, handler1.getPlayer(), handler2.getPlayer());
     handlers = new ArrayList<>();
-    passCounter = 0;
-    goban = new Goban(boardSize);
-
     handlers.add(handler1);
     handlers.add(handler2);
-    player1 = handler1.getPlayer();
-    player2 = handler2.getPlayer();
-    player1.setStone(Stone.BLACK);
-    player2.setStone(Stone.WHITE);
-    currentTurn = player1;
   }
 
-  /**
-   * Second constructor for local testing purposes.
-   */
   public GoGame(int boardSize, GoPlayer player1, GoPlayer player2) {
     this.boardSize = boardSize;
+    passCounter = 0;
     goban = new Goban(boardSize);
 
     this.player1 = player1;
@@ -70,9 +59,7 @@ public class GoGame {
   public synchronized void pass(GoPlayer player) throws NotYourTurnException {
     if (player.equals(getTurn())) {
       passCounter += 1;
-      if (passCounter > 1) {
-        setGameOver();
-      } else {
+      if (!isGameOver()) {
         setTurn();
       }
     } else {
@@ -102,11 +89,7 @@ public class GoGame {
   }
 
   public boolean isGameOver() {
-    return gameOver;
-  }
-
-  public void setGameOver() {
-    gameOver = true;
+    return passCounter > 1;
   }
 
   public void scoreGame() {

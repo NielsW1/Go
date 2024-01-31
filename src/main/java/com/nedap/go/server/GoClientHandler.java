@@ -39,17 +39,13 @@ public class GoClientHandler implements Runnable {
     return player;
   }
 
-  public Timer getTimer() {
-    return timer;
-  }
-
   public void setGame(GoGame game) {
     this.game = game;
   }
 
   public void handleHandshake() {
     wait(500);
-    handleOutput(protocolMessage(GoProtocol.HELLO,
+    sendMessage(protocolMessage(GoProtocol.HELLO,
         "Welcome to Niels' GO server! use LOGIN~<username> to log in."));
   }
 
@@ -81,9 +77,10 @@ public class GoClientHandler implements Runnable {
           server.printToServer(inputLine);
           break;
       }
-    } catch (IndexOutOfBoundsException ignored) {
+    } catch (IndexOutOfBoundsException e) {
+      server.printToServer(e.getMessage());
     } catch (NullPointerException e) {
-      handleOutput(protocolMessage(GoProtocol.ERROR, "You are not in a game!"));
+      sendMessage(protocolMessage(GoProtocol.ERROR, "You are not in a game!"));
     }
   }
 
@@ -100,7 +97,7 @@ public class GoClientHandler implements Runnable {
     } else {
       outMessage = protocolMessage(GoProtocol.REJECTED, "Invalid username!");
     }
-    handleOutput(outMessage);
+    sendMessage(outMessage);
     server.printToServer(outMessage);
   }
 
@@ -108,12 +105,11 @@ public class GoClientHandler implements Runnable {
     if (username != null && game == null) {
       if (server.getQueue().contains(this)) {
         server.removeFromQueue(this);
-        handleOutput(GoProtocol.QUEUED);
+        sendMessage(GoProtocol.QUEUED);
       } else {
-        handleOutput(GoProtocol.QUEUED);
+        sendMessage(GoProtocol.QUEUED);
         server.addToQueue(this);
       }
-      server.printToServer(protocolMessage(GoProtocol.QUEUED, username));
     }
   }
 
@@ -128,21 +124,15 @@ public class GoClientHandler implements Runnable {
         pos = Integer.parseInt(position);
       }
       game.makeMove(pos, player);
-
-      if (timer != null) {
-        timer.cancel();
-      }
+      cancelTimeout();
       server.broadCastToPlayers(game, protocolMessage(GoProtocol.MOVE,
           pos + GoProtocol.SEPARATOR + player.getColor()));
-      for (GoClientHandler handler : game.getHandlers()) {
-        if (!handler.equals(this)) {
-          handler.handleOutput(GoProtocol.MAKE_MOVE);
-          handler.startTimeOut();
-        }
-      }
+      opponentTurn();
 
     } catch (NumberFormatException | IllegalMoveException | NotYourTurnException e) {
-      handleOutput(protocolMessage(GoProtocol.ERROR, e.getMessage()));
+      String errorMessage = protocolMessage(GoProtocol.ERROR, e.getMessage());
+      sendMessage(errorMessage);
+      server.printToServer(errorMessage);
     }
   }
 
@@ -150,24 +140,21 @@ public class GoClientHandler implements Runnable {
     try {
       game.pass(player);
       server.broadCastToPlayers(game, protocolMessage(GoProtocol.PASS, player.getColor()));
-      server.broadCastToPlayers(game, GoProtocol.MAKE_MOVE);
+      cancelTimeout();
       if (game.isGameOver()) {
         server.endGame(game, this, false);
+      } else {
+        opponentTurn();
       }
     } catch (NotYourTurnException e) {
-      handleOutput(protocolMessage(GoProtocol.ERROR, "It is not your turn!"));
+      sendMessage(protocolMessage(GoProtocol.ERROR, "It is not your turn!"));
     }
   }
 
   public void handleResign() {
-    game.setGameOver();
     server.endGame(game, this, true);
     player.resetPlayer();
     game = null;
-  }
-
-  public String protocolMessage(String type, String message) {
-    return type + GoProtocol.SEPARATOR + message;
   }
 
   @Override
@@ -185,7 +172,16 @@ public class GoClientHandler implements Runnable {
     }
   }
 
-  public void handleOutput(String outputLine) {
+  public void opponentTurn() {
+    for (GoClientHandler handler : game.getHandlers()) {
+      if (!handler.equals(this)) {
+        handler.sendMessage(GoProtocol.MAKE_MOVE);
+        handler.startTimeout();
+      }
+    }
+  }
+
+  public void sendMessage(String outputLine) {
     try {
       out.write(outputLine);
       out.newLine();
@@ -195,27 +191,26 @@ public class GoClientHandler implements Runnable {
     }
   }
 
-  public void closeConnection() {
-    if (game != null) {
-      game.setGameOver();
-      server.endGame(game, this, true);
-    }
-    try {
-      server.handleDisconnect(this);
-      socket.close();
-    } catch (IOException ignored) {
-    }
+  public String protocolMessage(String type, String message) {
+    return type + GoProtocol.SEPARATOR + message;
   }
 
-  public void startTimeOut() {
+  public void startTimeout() {
     timer = new Timer();
     timer.schedule(new TimerTask() {
       @Override
       public void run() {
-        server.broadCastToPlayers(game, protocolMessage(GoProtocol.ERROR, "Move timed out!"));
+        server.broadCastToPlayers(game,
+            protocolMessage(GoProtocol.ERROR, username + ", move timed out!"));
         handleResign();
       }
     }, 60000);
+  }
+
+  public void cancelTimeout() {
+    if (timer != null) {
+      timer.cancel();
+    }
   }
 
   public void wait(int ms) {
@@ -224,4 +219,14 @@ public class GoClientHandler implements Runnable {
     } catch (InterruptedException ignored) {
     }
   }
+
+  public void closeConnection() {
+    try {
+      cancelTimeout();
+      server.handleDisconnect(this, game);
+      socket.close();
+    } catch (IOException | NullPointerException ignored) {
+    }
+  }
+
 }
