@@ -1,0 +1,37 @@
+package com.nedap.go.ai;
+
+import com.nedap.go.client.GoClient;
+import com.nedap.go.client.GoClientTUI;
+import com.nedap.go.gamelogic.Goban;
+import com.nedap.go.gamelogic.Stone;
+import java.io.IOException;
+import java.net.InetAddress;
+
+public class GoAIClient extends GoClient {
+
+  private GoNaivePlayer aiPlayer;
+  private GoClientTUI clientTUI;
+
+  public GoAIClient(InetAddress address, int port, GoClientTUI client)
+      throws IOException {
+    super(address, port, client);
+    clientTUI = client;
+  }
+
+  public GoClientTUI getClientTUI() {
+    return clientTUI;
+  }
+
+  @Override
+  public void handleTurn() {
+    super.handleTurn();
+    aiPlayer.makeMove();
+  }
+
+  @Override
+  public void handleGameStart() {
+    super.handleGameStart();
+    aiPlayer = new GoNaivePlayer(this);
+  }
+
+}

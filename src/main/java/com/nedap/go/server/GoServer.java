@@ -82,36 +82,35 @@ public class GoServer implements Runnable {
     player1.startTimeout();
   }
 
-  public void endGame(GoGame game, GoClientHandler clientHandler, boolean resign) {
-    synchronized (game.getHandlers()) {
-      List<GoClientHandler> gamePlayers = game.getHandlers();
-      game.scoreGame();
-      String gameOverMessage;
-      GoPlayer winner = null;
+  public synchronized void endGame(GoGame game, GoClientHandler clientHandler, boolean resign) {
+    List<GoClientHandler> gamePlayers = game.getHandlers();
+    game.scoreGame();
+    String gameOverMessage;
+    GoPlayer winner = null;
 
-      if (resign) {
-        for (GoClientHandler handler : gamePlayers) {
-          if (!clientHandler.equals(handler)) {
-            winner = handler.getPlayer();
-          }
-        }
-      } else {
-        winner = game.getWinner();
-      }
-      if (winner == null) {
-        gameOverMessage =
-            protocolMessage(GoProtocol.GAME_OVER, "Draw");
-      } else {
-        gameOverMessage = protocolMessage(GoProtocol.GAME_OVER,
-            "Winner" + GoProtocol.SEPARATOR + winner.getUsername());
-      }
-      wait(500);
-      broadCastToPlayers(game, gameOverMessage);
-
+    if (resign) {
       for (GoClientHandler handler : gamePlayers) {
-        handler.getPlayer().resetPlayer();
-        handler.setGame(null);
+        if (!clientHandler.equals(handler)) {
+          winner = handler.getPlayer();
+        }
       }
+    } else {
+      winner = game.getWinner();
+    }
+    if (winner == null) {
+      gameOverMessage =
+          protocolMessage(GoProtocol.GAME_OVER, "Draw");
+    } else {
+      gameOverMessage = protocolMessage(GoProtocol.GAME_OVER,
+          "Winner" + GoProtocol.SEPARATOR + winner.getUsername());
+    }
+    wait(500);
+    broadCastToPlayers(game, gameOverMessage);
+
+    for (GoClientHandler handler : gamePlayers) {
+      handler.cancelTimeout();
+      handler.getPlayer().resetPlayer();
+      handler.setGame(null);
     }
   }
 

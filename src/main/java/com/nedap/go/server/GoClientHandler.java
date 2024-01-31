@@ -12,6 +12,9 @@ import java.io.OutputStreamWriter;
 import java.net.Socket;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class GoClientHandler implements Runnable {
 
@@ -22,7 +25,7 @@ public class GoClientHandler implements Runnable {
   private String username;
   private GoPlayer player;
   private GoGame game;
-  private Timer timer;
+  private ScheduledExecutorService timerExecutor;
 
   public GoClientHandler(Socket socket, GoServer server) throws IOException {
     this.socket = socket;
@@ -124,9 +127,9 @@ public class GoClientHandler implements Runnable {
         pos = Integer.parseInt(position);
       }
       game.makeMove(pos, player);
-      cancelTimeout();
       server.broadCastToPlayers(game, protocolMessage(GoProtocol.MOVE,
           pos + GoProtocol.SEPARATOR + player.getColor()));
+      wait(100);
       opponentTurn();
 
     } catch (NumberFormatException | IllegalMoveException | NotYourTurnException e) {
@@ -154,7 +157,6 @@ public class GoClientHandler implements Runnable {
   public void handleResign() {
     server.endGame(game, this, true);
     player.resetPlayer();
-    game = null;
   }
 
   @Override
@@ -173,9 +175,11 @@ public class GoClientHandler implements Runnable {
   }
 
   public void opponentTurn() {
+    cancelTimeout();
     for (GoClientHandler handler : game.getHandlers()) {
       if (!handler.equals(this)) {
         handler.sendMessage(GoProtocol.MAKE_MOVE);
+        server.printToServer(GoProtocol.MAKE_MOVE + GoProtocol.SEPARATOR + handler.getUsername());
         handler.startTimeout();
       }
     }
@@ -196,20 +200,17 @@ public class GoClientHandler implements Runnable {
   }
 
   public void startTimeout() {
-    timer = new Timer();
-    timer.schedule(new TimerTask() {
-      @Override
-      public void run() {
-        server.broadCastToPlayers(game,
-            protocolMessage(GoProtocol.ERROR, username + ", move timed out!"));
-        handleResign();
-      }
-    }, 60000);
+    timerExecutor = Executors.newScheduledThreadPool(1);
+    timerExecutor.schedule(() -> {
+      server.broadCastToPlayers(game,
+          protocolMessage(GoProtocol.ERROR, username + ", move timed out!"));
+      handleResign();
+    }, 60, TimeUnit.SECONDS);
   }
 
   public void cancelTimeout() {
-    if (timer != null) {
-      timer.cancel();
+    if (timerExecutor != null) {
+      timerExecutor.shutdownNow();
     }
   }
 
@@ -222,7 +223,6 @@ public class GoClientHandler implements Runnable {
 
   public void closeConnection() {
     try {
-      cancelTimeout();
       server.handleDisconnect(this, game);
       socket.close();
     } catch (IOException | NullPointerException ignored) {

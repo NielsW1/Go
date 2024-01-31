@@ -239,7 +239,7 @@ public class GoTest {
     game.makeBulkMoves(moves, player1);
     game.makeBulkMoves(oppMoves, player2);
     try {
-      game.makeMove(3,3, player1);
+      game.makeMove(3, 3, player1);
     } catch (IllegalMoveException | NotYourTurnException ignored) {
     }
     assertEquals(gobanCopy.toString(), game.toString());

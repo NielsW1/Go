@@ -1,7 +1,5 @@
 package com.nedap.go.client;
 
-import com.nedap.go.Go;
-import com.nedap.go.gamelogic.GoGame;
 import com.nedap.go.gamelogic.Goban;
 import com.nedap.go.gamelogic.IllegalMoveException;
 import com.nedap.go.gamelogic.NotYourTurnException;
@@ -20,7 +18,7 @@ public class GoClient {
   private final Socket clientSocket;
   private final BufferedReader in;
   private final BufferedWriter out;
-  private GoClientTUI client;
+  private final GoClientTUI clientTUI;
   private String username;
   private String tempUsername;
   private int boardSize;
@@ -33,7 +31,7 @@ public class GoClient {
     clientSocket = new Socket(address, port);
     in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
     out = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
-    this.client = client;
+    clientTUI = client;
     receiveInput();
   }
 
@@ -45,6 +43,18 @@ public class GoClient {
     }
   }
 
+  public boolean getTurn() {
+    return currentTurn;
+  }
+
+  public boolean getGameStarted() {
+    return gameStarted;
+  }
+
+  public Goban getGoban() {
+    return goban;
+  }
+
   public void receiveInput() {
     new Thread(new Runnable() {
       @Override
@@ -54,7 +64,8 @@ public class GoClient {
           while ((inputLine = in.readLine()) != null) {
             handleInput(inputLine);
           }
-        } catch (IOException ignored) {
+        } catch (IOException e) {
+          clientTUI.receiveInput(e.getMessage());
         } finally {
           closeConnection();
         }
@@ -84,9 +95,7 @@ public class GoClient {
 
         case GoProtocol.GAME_STARTED:
           boardSize = Integer.parseInt(parsedInput[2]);
-          goban = new Goban(boardSize);
-          gameStarted = true;
-          queued = false;
+          handleGameStart();
           break;
 
         case GoProtocol.MOVE:
@@ -97,26 +106,37 @@ public class GoClient {
           break;
 
         case GoProtocol.MAKE_MOVE:
-          currentTurn = true;
+          handleTurn();
           break;
 
         case GoProtocol.GAME_OVER:
-          gameStarted = false;
           currentTurn = false;
+          gameStarted = false;
           break;
       }
     } catch (IndexOutOfBoundsException | NumberFormatException e) {
       sendMessage(GoProtocol.ERROR + GoProtocol.SEPARATOR + e.getMessage());
     }
-    client.receiveInput(inputLine);
+    clientTUI.receiveInput(inputLine);
+  }
+
+  public void handleGameStart() {
+    goban = new Goban(boardSize);
+    gameStarted = true;
+    queued = false;
   }
 
   public void handleMove(int position, Stone move) {
     try {
       goban.makeMove(position, move);
-    } catch (IllegalMoveException ignored) {
+    } catch (IllegalMoveException e) {
+      clientTUI.receiveInput(e.getMessage());
     }
-    client.receiveInput(goban.toString());
+    clientTUI.receiveInput(goban.toString());
+  }
+
+  public void handleTurn() {
+    currentTurn = true;
   }
 
   public void handleOutput(String outputLine)
@@ -131,19 +151,16 @@ public class GoClient {
         break;
 
       case GoProtocol.QUEUE:
-        if (!gameStarted) {
+        if (!getGameStarted()) {
           sendMessage(outputLine);
         }
         break;
 
-      case GoProtocol.HELLO:
-        sendMessage(outputLine);
-
       case GoProtocol.MOVE:
       case GoProtocol.PASS:
       case GoProtocol.RESIGN:
-        if (gameStarted) {
-          if (!currentTurn) {
+        if (getGameStarted()) {
+          if (!getTurn()) {
             throw new NotYourTurnException("It is not your turn!");
           }
           if (parsedOutput[0].equalsIgnoreCase(GoProtocol.MOVE)) {
@@ -156,7 +173,7 @@ public class GoClient {
               position = Integer.parseInt(parsedPosition[0]);
             }
             if (!goban.isValidMove(position)) {
-              throw new IllegalMoveException("Invalid move! Try again.");
+              throw new IllegalMoveException("Invalid move " + position);
             }
           }
           sendMessage(outputLine);
@@ -171,6 +188,7 @@ public class GoClient {
       out.newLine();
       out.flush();
     } catch (IOException e) {
+      clientTUI.receiveInput(e.getMessage());
       closeConnection();
     }
   }
@@ -178,7 +196,8 @@ public class GoClient {
   public void closeConnection() {
     try {
       clientSocket.close();
-    } catch (IOException ignored) {
+    } catch (IOException e) {
+      clientTUI.receiveInput(e.getMessage());
     }
   }
 }

@@ -1,5 +1,7 @@
 package com.nedap.go.client;
 
+import com.nedap.go.ai.GoAIClient;
+import com.nedap.go.ai.GoNaivePlayer;
 import com.nedap.go.gamelogic.GoPlayer;
 import com.nedap.go.gamelogic.IllegalMoveException;
 import com.nedap.go.gamelogic.NotYourTurnException;
@@ -38,10 +40,18 @@ public class GoClientTUI {
               System.out.println("Valid port numbers range between 0 and 65535.");
               continue;
             }
+            System.out.println("Human or AI player?");
+            if (input.hasNextLine()) {
+              command = input.nextLine();
+              if (command.equalsIgnoreCase("AI")) {
+                client = new GoAIClient(hostAddress, port, this);
+              } else {
+                client = new GoClient(hostAddress, port, this);
 
-            client = new GoClient(hostAddress, port, this);
-            System.out.println("Connection established with " + hostAddress + " on port " + port);
-            runClient();
+              }
+              System.out.println("Connection established with " + hostAddress + " on port " + port);
+              runClient();
+            }
 
           } catch (IndexOutOfBoundsException e) {
             System.out.println("Invalid number of arguments.");

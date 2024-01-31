@@ -38,8 +38,8 @@ public class GoGame {
     return currentTurn;
   }
 
-  public List<GoClientHandler> getHandlers() {
-    return handlers;
+  public synchronized List<GoClientHandler> getHandlers() {
+      return handlers;
   }
 
   public int getBoardSize() {

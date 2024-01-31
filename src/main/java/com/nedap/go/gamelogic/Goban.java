@@ -28,6 +28,16 @@ public class Goban {
         getStone(linearPosition) == Stone.EMPTY && koMove != linearPosition;
   }
 
+  public List<Integer> getValidMoves() {
+    List<Integer> validMoves = new ArrayList<>();
+    for (int i = 0; i < boardSize * boardSize; i++) {
+      if (isValidMove(i)) {
+        validMoves.add(i);
+      }
+    }
+    return validMoves;
+  }
+
 
   public void makeMove(int linearPosition, Stone stone) throws IllegalMoveException {
     if (isValidMove(linearPosition)) {
