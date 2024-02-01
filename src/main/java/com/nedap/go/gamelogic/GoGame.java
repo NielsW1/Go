@@ -39,7 +39,7 @@ public class GoGame {
   }
 
   public synchronized List<GoClientHandler> getHandlers() {
-      return handlers;
+    return handlers;
   }
 
   public int getBoardSize() {
@@ -63,7 +63,7 @@ public class GoGame {
         setTurn();
       }
     } else {
-      throw new NotYourTurnException();
+      throw new NotYourTurnException("It's not your turn!");
     }
   }
 

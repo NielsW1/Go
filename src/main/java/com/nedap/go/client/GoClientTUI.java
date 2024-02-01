@@ -1,8 +1,6 @@
 package com.nedap.go.client;
 
 import com.nedap.go.ai.GoAIClient;
-import com.nedap.go.ai.GoNaivePlayer;
-import com.nedap.go.gamelogic.GoPlayer;
 import com.nedap.go.gamelogic.IllegalMoveException;
 import com.nedap.go.gamelogic.NotYourTurnException;
 import java.io.IOException;
@@ -12,7 +10,7 @@ import java.util.Scanner;
 public class GoClientTUI {
 
   private GoClient client;
-  private Scanner input;
+  private final Scanner input;
   private boolean run = true;
 
   public GoClientTUI() {
@@ -77,6 +75,7 @@ public class GoClientTUI {
 
           case "GUI":
             client.setGUI();
+            System.out.println("GUI has been enabled.");
             break;
 
           case "EXIT":
@@ -112,7 +111,8 @@ public class GoClientTUI {
         Valid commands:
                 
         LOGIN~<username> .............. Login to the server with your username.
-        QUEUE ......................... Join the queue to wait for a new game to start. Use the command again to exit the queue.
+        QUEUE ......................... Join the queue to wait for a new game to start.\s
+        Use the command again to exit the queue.
         MOVE~<number> ................. Make a move at this specific coordinate.
         MOVE~<col, row> ............... Make a move at position col, row.
         PASS .......................... Pass your current move.

@@ -2,15 +2,13 @@ package com.nedap.go.ai;
 
 import com.nedap.go.client.GoClient;
 import com.nedap.go.client.GoClientTUI;
-import com.nedap.go.gamelogic.Goban;
-import com.nedap.go.gamelogic.Stone;
 import java.io.IOException;
 import java.net.InetAddress;
 
 public class GoAIClient extends GoClient {
 
   private GoNaivePlayer aiPlayer;
-  private GoClientTUI clientTUI;
+  private final GoClientTUI clientTUI;
 
   public GoAIClient(InetAddress address, int port, GoClientTUI client)
       throws IOException {

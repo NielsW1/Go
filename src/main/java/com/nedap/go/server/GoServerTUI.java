@@ -5,7 +5,7 @@ import java.util.Scanner;
 
 public class GoServerTUI {
 
-  private Scanner input;
+  private final Scanner input;
   private GoServer server;
   private boolean runServer = true;
 

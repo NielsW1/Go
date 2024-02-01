@@ -170,7 +170,7 @@ public class GoClientHandler implements Runnable {
         opponentTurn();
       }
     } catch (NotYourTurnException e) {
-      sendMessage(protocolMessage(GoProtocol.ERROR, "It is not your turn!"));
+      sendMessage(protocolMessage(GoProtocol.ERROR, e.getMessage()));
     }
   }
 

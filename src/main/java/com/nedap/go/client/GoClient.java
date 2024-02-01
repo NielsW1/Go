@@ -177,7 +177,7 @@ public class GoClient {
       case GoProtocol.RESIGN:
         if (getGameStarted()) {
           if (!getTurn()) {
-            throw new NotYourTurnException("It's' not your turn!");
+            throw new NotYourTurnException("It's not your turn!");
           }
           if (parsedOutput[0].equalsIgnoreCase(GoProtocol.MOVE)) {
             int position;

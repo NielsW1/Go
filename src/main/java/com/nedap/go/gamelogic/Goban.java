@@ -9,7 +9,7 @@ import java.util.Queue;
 
 public class Goban {
 
-  private Stone[][] goban;
+  private final Stone[][] goban;
   private final int boardSize;
   private int koMove = -1;
 
@@ -43,9 +43,7 @@ public class Goban {
    * It checks all the neighbouring stones and adds them to playerStones or
    * opponentStones. It then attempts to capture, starting from the neighbouring
    * opponent's moves.
-   * @param linearPosition
-   * @param stone
-   * @throws IllegalMoveException
+
    */
 
   public void makeMove(int linearPosition, Stone stone) throws IllegalMoveException {
@@ -85,7 +83,8 @@ public class Goban {
     for (int move : moves) {
       try {
         makeMove(move, player.getStone());
-      } catch (IllegalMoveException ignored) {}
+      } catch (IllegalMoveException ignored) {
+      }
     }
   }
 
@@ -108,8 +107,6 @@ public class Goban {
    * the stones HashSet if the neighbour is the same as stone. Otherwise, the neighbour
    * is added to the adjacentStones HashSet. The method will keep checking neighbours
    * until no more surrounding stones belong to the current player.
-   * @param linearPosition
-   * @param stone
    * @return StoneChain
    */
 
@@ -139,8 +136,6 @@ public class Goban {
    * belong to the other player. If true, removes all stones in the StoneChain from the board.
    * If only a single stone is captured in this move, sets the koMove to the position of the
    * captured stone.
-   * @param linearPosition
-   * @param stone
    */
 
   public void captureStones(int linearPosition, Stone stone) {
@@ -161,7 +156,6 @@ public class Goban {
   /**
    * Gets all neighbouring positions of linearPosition on the board, and returns them
    * as a list. Adjusts for corners and edges based on the drow and dcol arrays.
-   * @param linearPosition
    * @return list of all neighbouring positions on the board.
    */
 

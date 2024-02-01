@@ -1,15 +1,13 @@
 package com.nedap.go.ai;
 
-import com.nedap.go.client.GoClient;
 import com.nedap.go.gamelogic.IllegalMoveException;
 import com.nedap.go.gamelogic.NotYourTurnException;
 import com.nedap.go.server.GoProtocol;
-import java.util.ArrayList;
 import java.util.List;
 
 public class GoNaivePlayer {
 
-  private GoAIClient client;
+  private final GoAIClient client;
 
   public GoNaivePlayer(GoAIClient client) {
     this.client = client;

@@ -6,7 +6,4 @@ public class NotYourTurnException extends Exception{
     super(message);
   }
 
-  public NotYourTurnException() {
-
-  }
 }
