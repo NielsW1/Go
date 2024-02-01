@@ -30,8 +30,9 @@ public class GoAIClient extends GoClient {
 
   @Override
   public void handleGameStart() {
-    super.handleGameStart();
     aiPlayer = new GoNaivePlayer(this);
+    setGUI();
+    super.handleGameStart();
   }
 
 }

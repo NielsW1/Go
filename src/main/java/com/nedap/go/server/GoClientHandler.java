@@ -10,8 +10,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -32,6 +30,21 @@ public class GoClientHandler implements Runnable {
     this.server = server;
     in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
     out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+  }
+
+  @Override
+  public void run() {
+    handleHandshake();
+    try {
+      String inputLine;
+      while ((inputLine = in.readLine()) != null) {
+        handleInput(inputLine);
+      }
+    } catch (IOException e) {
+      server.printToServer(e.getMessage());
+    } finally {
+      closeConnection();
+    }
   }
 
   public String getUsername() {
@@ -87,6 +100,10 @@ public class GoClientHandler implements Runnable {
     }
   }
 
+  /**
+   * Logs the user in if the username is valid and no one with the same name is logged in
+   * at the moment.
+   */
   public void handleLogin(String name) {
     String outMessage;
     if (username == null && !name.trim().isEmpty()) {
@@ -104,6 +121,10 @@ public class GoClientHandler implements Runnable {
     server.printToServer(outMessage);
   }
 
+  /**
+   * Adds the player to the waiting queue. If the player is already in the queue,
+   * removes them instead.
+   */
   public void handleQueue() {
     if (username != null && game == null) {
       if (server.getQueue().contains(this)) {
@@ -143,7 +164,6 @@ public class GoClientHandler implements Runnable {
     try {
       game.pass(player);
       server.broadCastToPlayers(game, protocolMessage(GoProtocol.PASS, player.getColor()));
-      cancelTimeout();
       if (game.isGameOver()) {
         server.endGame(game, this, false);
       } else {
@@ -159,21 +179,10 @@ public class GoClientHandler implements Runnable {
     player.resetPlayer();
   }
 
-  @Override
-  public void run() {
-    handleHandshake();
-    try {
-      String inputLine;
-      while ((inputLine = in.readLine()) != null) {
-        handleInput(inputLine);
-      }
-    } catch (IOException e) {
-      server.printToServer(e.getMessage());
-    } finally {
-      closeConnection();
-    }
-  }
-
+  /**
+   * Cancels this player's timeout timer, then sends the MAKE MOVE message to the
+   * other player and starts the other player's timeout timer.
+   */
   public void opponentTurn() {
     cancelTimeout();
     for (GoClientHandler handler : game.getHandlers()) {
@@ -191,6 +200,7 @@ public class GoClientHandler implements Runnable {
       out.newLine();
       out.flush();
     } catch (IOException e) {
+      server.printToServer(e.getMessage());
       closeConnection();
     }
   }
@@ -199,6 +209,10 @@ public class GoClientHandler implements Runnable {
     return type + GoProtocol.SEPARATOR + message;
   }
 
+  /**
+   * Starts a 60-second timer for this player. If the timer expires, the player
+   * automatically resigns.
+   */
   public void startTimeout() {
     timerExecutor = Executors.newScheduledThreadPool(1);
     timerExecutor.schedule(() -> {
@@ -208,6 +222,10 @@ public class GoClientHandler implements Runnable {
     }, 60, TimeUnit.SECONDS);
   }
 
+  /**
+   * Cancels the timer for this player. This method is called whenever this player
+   * makes a move.
+   */
   public void cancelTimeout() {
     if (timerExecutor != null) {
       timerExecutor.shutdownNow();
@@ -225,7 +243,8 @@ public class GoClientHandler implements Runnable {
     try {
       server.handleDisconnect(this, game);
       socket.close();
-    } catch (IOException | NullPointerException ignored) {
+    } catch (IOException e) {
+      server.printToServer(e.getMessage());
     }
   }
 

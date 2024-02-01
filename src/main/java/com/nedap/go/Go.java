@@ -16,6 +16,18 @@ public class Go {
     gogui.setBoardSize(boardSize);
   }
 
+  public void placeStone(int x, int y, boolean white) {
+    gogui.addStone(x, y, white);
+  }
+
+  public void removeStone(int x, int y) {
+    gogui.removeStone(x, y);
+  }
+
+  public void clearGUI() {
+    gogui.clearBoard();
+  }
+
   public void testBoard() {
     gogui.addStone(0, 0, false);
     gogui.addStone(0, 2, true);

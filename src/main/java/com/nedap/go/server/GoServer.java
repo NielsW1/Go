@@ -18,14 +18,15 @@ public class GoServer implements Runnable {
   private final Queue<GoClientHandler> playerQueue = new LinkedList<>();
   private GoServerTUI serverTUI;
 
-  public GoServer(int port) throws IOException {
-    serverSocket = new ServerSocket(port);
-  }
-
   public GoServer(int port, GoServerTUI serverTUI) throws IOException {
     this(port);
     this.serverTUI = serverTUI;
   }
+
+  public GoServer(int port) throws IOException {
+    serverSocket = new ServerSocket(port);
+  }
+
 
   public int getServerPort() {
     return serverSocket.getLocalPort();
@@ -56,6 +57,10 @@ public class GoServer implements Runnable {
     }
   }
 
+  /**
+   * Checks if someone with username is already logged in to the server.
+   * @return true if username already logged in
+   */
   public synchronized boolean userAlreadyLoggedIn(GoClientHandler clientHandler, String username) {
     for (GoClientHandler handler : handlers) {
       if (!handler.equals(clientHandler)) {
@@ -70,6 +75,9 @@ public class GoServer implements Runnable {
     return false;
   }
 
+  /**
+   * Starts a new game with the first two players in the waiting queue.
+   */
   public synchronized void startNewGame(GoClientHandler player1, GoClientHandler player2) {
     GoGame newGame = new GoGame(9, player1, player2);
     player1.setGame(newGame);
@@ -82,6 +90,10 @@ public class GoServer implements Runnable {
     player1.startTimeout();
   }
 
+  /**
+   * Ends the game. If a player resigns or disconnects, the other player automatically wins.
+   * The winner is then broadcasted to both players and the players are reset.
+   */
   public synchronized void endGame(GoGame game, GoClientHandler clientHandler, boolean resign) {
     List<GoClientHandler> gamePlayers = game.getHandlers();
     game.scoreGame();
@@ -120,6 +132,7 @@ public class GoServer implements Runnable {
       try {
         acceptConnections();
       } catch (IOException e) {
+        printToServer(e.getMessage());
         closeServer();
       }
     }
@@ -130,7 +143,8 @@ public class GoServer implements Runnable {
       try {
         Socket socket = serverSocket.accept();
         handleConnection(socket);
-      } catch (SocketException ignored) {
+      } catch (SocketException e) {
+        printToServer(e.getMessage());
       }
     }
   }
@@ -144,12 +158,12 @@ public class GoServer implements Runnable {
       printToServer("Connected to server");
 
     } catch (IOException e) {
-      System.out.println("Something went wrong initializing the connection.");
+      printToServer(e.getMessage());
     }
   }
 
   /**
-   * Broadcasts message to clients in specific game.
+   * Broadcasts message to clients in game.
    */
   public synchronized void broadCastToPlayers(GoGame game, String outputLine) {
     printToServer(outputLine);
@@ -159,6 +173,12 @@ public class GoServer implements Runnable {
       }
     }
   }
+
+  /**
+   * Handles a disconnect on the server side. If the player was in a game, the game ends
+   * and the other player is declared winner.
+
+   */
 
   public void handleDisconnect(GoClientHandler clientHandler, GoGame game) {
     synchronized (handlers) {
@@ -170,10 +190,16 @@ public class GoServer implements Runnable {
     }
   }
 
+  /**
+   * Translates a message to adhere to the protocol.
+   */
   public String protocolMessage(String type, String message) {
     return type + GoProtocol.SEPARATOR + message;
   }
 
+  /**
+   * Prints a message to the serverTUI.
+   */
   public void printToServer(String message) {
     if (serverTUI != null) {
       serverTUI.receiveMessage(GoProtocol.LOG + message);

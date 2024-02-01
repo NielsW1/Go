@@ -74,15 +74,22 @@ public class GoClientTUI {
       if (input.hasNextLine()) {
         inputLine = input.nextLine();
         switch (inputLine.toUpperCase()) {
+
+          case "GUI":
+            client.setGUI();
+            break;
+
           case "EXIT":
           case "QUIT":
             System.out.println("Closing client....");
             client.closeConnection();
             run = false;
             break;
+
           case "HELP":
             help();
             break;
+
           default:
             try {
               client.handleOutput(inputLine);
@@ -110,7 +117,8 @@ public class GoClientTUI {
         MOVE~<col, row> ............... Make a move at position col, row.
         PASS .......................... Pass your current move.
         RESIGN ........................ Forfeit the game, the opponent will automatically win
-        EXIT, QUIT .................... Close the client, disconnecting you from the server.""");
+        EXIT, QUIT .................... Close the client, disconnecting you from the server.
+        GUI ........................... Creates a GUI that displays the board state""");
   }
 
   public static void main(String[] args) {

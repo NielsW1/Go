@@ -38,6 +38,15 @@ public class Goban {
     return validMoves;
   }
 
+  /**
+   * Places a stone on the board, then checks if it leads to any captures.
+   * It checks all the neighbouring stones and adds them to playerStones or
+   * opponentStones. It then attempts to capture, starting from the neighbouring
+   * opponent's moves.
+   * @param linearPosition
+   * @param stone
+   * @throws IllegalMoveException
+   */
 
   public void makeMove(int linearPosition, Stone stone) throws IllegalMoveException {
     if (isValidMove(linearPosition)) {
@@ -206,6 +215,19 @@ public class Goban {
         }
       }
     }
+  }
+
+  public String getScores() {
+    int blackScore = 0;
+    int whiteScore = 0;
+    for (int i = 0; i < boardSize * boardSize; i++) {
+      if (getStone(i) == Stone.BLACK) {
+        blackScore += 1;
+      } else if (getStone(i) == Stone.WHITE) {
+        whiteScore += 1;
+      }
+    }
+    return "BLACK: " + blackScore + "\nWHITE: " + whiteScore;
   }
 
   public boolean territoryBelongsToPlayer(Stone stone, HashSet<Integer> adjacentStone) {

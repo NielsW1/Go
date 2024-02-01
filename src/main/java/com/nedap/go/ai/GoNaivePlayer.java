@@ -19,15 +19,14 @@ public class GoNaivePlayer {
     List<Integer> validMoves = client.getGoban().getValidMoves();
     boolean invalid = true;
     try {
-      if (validMoves.isEmpty()) {
+      if (validMoves.size() < 2) {
         client.handleOutput(GoProtocol.PASS);
       }
       while (invalid) {
         int randomMove = validMoves.get((int) (Math.random() * validMoves.size()));
-        if (client.getGoban().isValidMove(randomMove)) {
-          client.handleOutput(GoProtocol.MOVE + GoProtocol.SEPARATOR + randomMove);
-          invalid = false;
-        }
+        client.handleOutput(GoProtocol.MOVE + GoProtocol.SEPARATOR + randomMove);
+        invalid = false;
+
       }
     } catch (IllegalMoveException | NotYourTurnException | NumberFormatException |
              IndexOutOfBoundsException e) {

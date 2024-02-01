@@ -95,7 +95,7 @@ public class GoGuiIntegrator implements GoGui {
 
 	@Override
 	public synchronized void stopGUI() {
-		// Not implemented yet
+
 	}
 
 	private void createWrappedObject() {
@@ -118,4 +118,5 @@ public class GoGuiIntegrator implements GoGui {
 		createWrappedObject();
 		wrappee.countDownConfigurationLatch();
 	}
+
 }

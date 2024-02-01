@@ -26,6 +26,8 @@ public class GoClient {
   private boolean currentTurn;
   private boolean queued;
   private Goban goban;
+  private boolean gui = false;
+  private GoClientListener listener;
 
   public GoClient(InetAddress address, int port, GoClientTUI client) throws IOException {
     clientSocket = new Socket(address, port);
@@ -55,20 +57,23 @@ public class GoClient {
     return goban;
   }
 
+  public void setGUI() {
+    if (!gameStarted) {
+      gui = true;
+    }
+  }
+
   public void receiveInput() {
-    new Thread(new Runnable() {
-      @Override
-      public void run() {
-        try {
-          String inputLine;
-          while ((inputLine = in.readLine()) != null) {
-            handleInput(inputLine);
-          }
-        } catch (IOException e) {
-          clientTUI.receiveInput(e.getMessage());
-        } finally {
-          closeConnection();
+    new Thread(() -> {
+      try {
+        String inputLine;
+        while ((inputLine = in.readLine()) != null) {
+          handleInput(inputLine);
         }
+      } catch (IOException e) {
+        sendToTUI(e.getMessage());
+      } finally {
+        closeConnection();
       }
     }).start();
   }
@@ -112,27 +117,37 @@ public class GoClient {
         case GoProtocol.GAME_OVER:
           currentTurn = false;
           gameStarted = false;
+          goban.scoreGoban();
+          inputLine += "\n" + goban.getScores();
+          clearGUI();
+          goban = null;
           break;
       }
     } catch (IndexOutOfBoundsException | NumberFormatException e) {
       sendMessage(GoProtocol.ERROR + GoProtocol.SEPARATOR + e.getMessage());
     }
-    clientTUI.receiveInput(inputLine);
+    sendToTUI(inputLine);
   }
 
   public void handleGameStart() {
     goban = new Goban(boardSize);
     gameStarted = true;
     queued = false;
+    if (gui && listener == null) {
+      startGUI();
+    }
   }
 
   public void handleMove(int position, Stone move) {
     try {
       goban.makeMove(position, move);
     } catch (IllegalMoveException e) {
-      clientTUI.receiveInput(e.getMessage());
+      sendToTUI(e.getMessage());
     }
-    clientTUI.receiveInput(goban.toString());
+    if (!gui) {
+      sendToTUI(goban.toString());
+    }
+    updateGUI();
   }
 
   public void handleTurn() {
@@ -140,7 +155,8 @@ public class GoClient {
   }
 
   public void handleOutput(String outputLine)
-      throws IllegalMoveException, NotYourTurnException, NumberFormatException, IndexOutOfBoundsException {
+      throws IllegalMoveException, NotYourTurnException,
+      NumberFormatException, IndexOutOfBoundsException {
     String[] parsedOutput = outputLine.split(GoProtocol.SEPARATOR);
     switch (parsedOutput[0].toUpperCase()) {
       case GoProtocol.LOGIN:
@@ -161,7 +177,7 @@ public class GoClient {
       case GoProtocol.RESIGN:
         if (getGameStarted()) {
           if (!getTurn()) {
-            throw new NotYourTurnException("It is not your turn!");
+            throw new NotYourTurnException("It's' not your turn!");
           }
           if (parsedOutput[0].equalsIgnoreCase(GoProtocol.MOVE)) {
             int position;
@@ -173,12 +189,28 @@ public class GoClient {
               position = Integer.parseInt(parsedPosition[0]);
             }
             if (!goban.isValidMove(position)) {
-              throw new IllegalMoveException("Invalid move " + position);
+              throw new IllegalMoveException("Invalid move! Try again.");
             }
           }
           sendMessage(outputLine);
         }
         break;
+    }
+  }
+
+  public void startGUI() {
+    listener = new GoClientListener(boardSize, this);
+  }
+
+  public void updateGUI() {
+    if (listener != null) {
+      listener.updateGUI();
+    }
+  }
+
+  public void clearGUI() {
+    if (listener != null) {
+      listener.clearGUI();
     }
   }
 
@@ -188,16 +220,20 @@ public class GoClient {
       out.newLine();
       out.flush();
     } catch (IOException e) {
-      clientTUI.receiveInput(e.getMessage());
+      sendToTUI(e.getMessage());
       closeConnection();
     }
+  }
+
+  public void sendToTUI(String message) {
+    clientTUI.receiveInput(message);
   }
 
   public void closeConnection() {
     try {
       clientSocket.close();
     } catch (IOException e) {
-      clientTUI.receiveInput(e.getMessage());
+      sendToTUI(e.getMessage());
     }
   }
 }

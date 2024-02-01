@@ -142,6 +142,22 @@ public class GoTest {
   }
 
   @Test
+  void testCaptureEdge3() {
+    int[] moves = {0, 1, 2, 9, 10, 11, 18, 19, 20, 27, 28, 29, 36, 38, 45, 46};
+    int[] oppMoves = {3, 12, 21, 30, 39, 47, 54, 55};
+    gobanCopy.makeBulkMoves(oppMoves, player2);
+    game.makeBulkMoves(moves, player1);
+    game.makeBulkMoves(oppMoves, player2);
+    try {
+      game.setTurn();
+      game.makeMove(4,1, player2);
+      gobanCopy.makeMove(37, Stone.WHITE);
+    } catch (IllegalMoveException | NotYourTurnException ignored) {
+    }
+    assertEquals(gobanCopy.toString(), game.toString());
+  }
+
+  @Test
   void testCaptureMultipleGroups() {
     int[] moves = {29, 30, 38, 39, 32, 41, 49};
     int[] oppMoves = {20, 21, 23, 28, 33, 37, 40, 42, 47, 48, 50, 58};
@@ -243,5 +259,22 @@ public class GoTest {
     } catch (IllegalMoveException | NotYourTurnException ignored) {
     }
     assertEquals(gobanCopy.toString(), game.toString());
+  }
+
+  @Test
+  void testSuicideFullBoard() {
+    int[] oppMoves = new int[80];
+    for (int i = 1; i < game.getBoardSize() * game.getBoardSize() - 1; i++) {
+      oppMoves[i] = i;
+    }
+    game.makeBulkMoves(oppMoves, player2);
+    try {
+      gobanCopy.makeMove(80, Stone.BLACK);
+      game.makeMove(80, player1);
+    } catch (IllegalMoveException | NotYourTurnException ignored) {
+    }
+    System.out.println(game.toString());
+    assertEquals(gobanCopy.toString(), game.toString());
+
   }
 }
