@@ -1,0 +1,37 @@
+GO - Installation and user guide
+
+Download the GoClient.jar and GoServer.jar files from the bin directory to
+a location of your choosing.
+Make sure you have the Java Runtime Environment 21 (JRE) installed.
+The game can be run from the command line. Navigate to the directory where you downloaded
+the .jar files and use the command:
+
+- java -jar GoServer.jar
+
+When you start the server, it will ask for a port to start listening for connections. Enter
+any valid port number between 0 and 65535. The server will then start on the port you entered.
+
+Then, start the client using the command:
+
+- java -jar GoClient.jar
+
+The client will ask for an ip address and a port to connect to. Enter the ip address and the port
+separated by a space, for example:
+
+- 127.0.0.1 8080
+
+It will then ask if you want to connect as a human player or if you want to connect as a
+computer player that plays for you. Enter "AI" to connect as a computer,
+or "HUMAN" to connect as a player yourself.
+
+The client will then connect to the server or throw an error if it was unable to do so.
+Use the command HELP to show all valid commands that can be used in the client.
+
+Enter LOGIN~<username> to log in to the server.
+Use the command GUI to enable the GUI. This is only possible before a game is started.
+Use QUEUE to join the waiting queue. As soon as two players join the queue, a game
+will automatically start.
+When a game has started, you can use the MOVE~N or MOVE~col,row commands to make a move
+when it's your turn.
+Use PASS to pass your current turn
+Use RESIGN to forfeit the game.
