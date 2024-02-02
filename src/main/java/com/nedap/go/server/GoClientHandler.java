@@ -138,7 +138,7 @@ public class GoClientHandler implements Runnable {
   }
 
   public void handleMove(String position) {
-    int pos;
+    int pos = 1;
     String[] parsedPosition = position.split(",");
     try {
       if (parsedPosition.length > 1) {
@@ -153,7 +153,13 @@ public class GoClientHandler implements Runnable {
       wait(100);
       opponentTurn();
 
-    } catch (NumberFormatException | IllegalMoveException | NotYourTurnException e) {
+    } catch (IllegalMoveException e) {
+      String errorMessage = protocolMessage(GoProtocol.ERROR, e.getMessage() + pos);
+      sendMessage(errorMessage);
+      sendMessage(GoProtocol.MAKE_MOVE);
+      server.printToServer(errorMessage);
+
+    } catch (NumberFormatException | NotYourTurnException e) {
       String errorMessage = protocolMessage(GoProtocol.ERROR, e.getMessage());
       sendMessage(errorMessage);
       server.printToServer(errorMessage);

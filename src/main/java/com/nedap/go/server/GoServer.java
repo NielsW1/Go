@@ -27,7 +27,6 @@ public class GoServer implements Runnable {
     serverSocket = new ServerSocket(port);
   }
 
-
   public int getServerPort() {
     return serverSocket.getLocalPort();
   }

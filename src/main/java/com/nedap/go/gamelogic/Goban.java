@@ -1,7 +1,7 @@
 package com.nedap.go.gamelogic;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -11,10 +11,11 @@ public class Goban {
 
   private final Stone[][] goban;
   private final int boardSize;
-  private int koMove = -1;
+  private final Queue<Stone[][]> previousGobans;
 
   public Goban(int boardSize) {
     this.boardSize = boardSize;
+    previousGobans = new LinkedList<>();
     goban = new Stone[boardSize][boardSize];
     for (int i = 0; i < boardSize; i++) {
       for (int j = 0; j < boardSize; j++) {
@@ -25,17 +26,59 @@ public class Goban {
 
   public boolean isValidMove(int linearPosition) {
     return linearPosition >= 0 && linearPosition < boardSize * boardSize &&
-        getStone(linearPosition) == Stone.EMPTY && koMove != linearPosition;
+        getStone(linearPosition) == Stone.EMPTY;
   }
 
-  public List<Integer> getValidMoves() {
+  public List<Integer> getValidMoves(Stone stone) {
     List<Integer> validMoves = new ArrayList<>();
     for (int i = 0; i < boardSize * boardSize; i++) {
-      if (isValidMove(i)) {
-        validMoves.add(i);
+      try {
+        if (isValidMove(i) && attemptMove(i, stone) != null) {
+          validMoves.add(i);
+        }
+      } catch (IllegalMoveException ignored) {
       }
     }
     return validMoves;
+  }
+
+  public Goban attemptMove(int linearPosition, Stone stone) throws IllegalMoveException {
+    if (!isValidMove(linearPosition)) {
+      throw new IllegalMoveException("Invalid move! Try again.");
+    }
+    Goban gameCopy = gobanCopy();
+
+    gameCopy.placeStone(linearPosition, stone);
+
+    List<Integer> playerStones = new ArrayList<>();
+    List<Integer> opponentStones = new ArrayList<>();
+    List<Integer> neighbours = gameCopy.getNeighbours(linearPosition);
+
+    for (int neighbour : neighbours) {
+      if (gameCopy.getStone(neighbour) == stone) {
+        playerStones.add(neighbour);
+      } else if (gameCopy.getStone(neighbour) == stone.other()) {
+        opponentStones.add(neighbour);
+      }
+    }
+
+    if (neighbours.size() == opponentStones.size()) {
+      playerStones.add(linearPosition);
+    }
+
+    for (int position : opponentStones) {
+      gameCopy.captureStones(position, stone.other());
+    }
+
+    for (int position : playerStones) {
+      gameCopy.captureStones(position, stone);
+    }
+    for (Stone[][] previousGoban : previousGobans) {
+      if (Arrays.deepEquals(previousGoban, gameCopy.getGoban())) {
+        return null;
+      }
+    }
+    return gameCopy;
   }
 
   /**
@@ -47,33 +90,13 @@ public class Goban {
    */
 
   public void makeMove(int linearPosition, Stone stone) throws IllegalMoveException {
-    if (isValidMove(linearPosition)) {
-      koMove = -1;
-      List<Integer> playerStones = new ArrayList<>();
-      List<Integer> opponentStones = new ArrayList<>();
-      List<Integer> neighbours = getNeighbours(linearPosition);
-
-      placeStone(linearPosition, stone);
-
-      for (int neighbour : neighbours) {
-        if (getStone(neighbour) == stone) {
-          playerStones.add(neighbour);
-        } else if (getStone(neighbour) == stone.other()) {
-          opponentStones.add(neighbour);
-        }
+    Goban gobanCopy = attemptMove(linearPosition, stone);
+    if (gobanCopy != null) {
+      if (previousGobans.size() > 1) {
+        previousGobans.poll();
       }
-
-      if (neighbours.size() == opponentStones.size()) {
-        playerStones.add(linearPosition);
-      }
-
-      for (int position : opponentStones) {
-        captureStones(position, stone.other());
-      }
-
-      for (int position : playerStones) {
-        captureStones(position, stone);
-      }
+      previousGobans.add(gobanCopy.getGoban());
+      updateGoban(gobanCopy);
     } else {
       throw new IllegalMoveException("Invalid move! Try again.");
     }
@@ -98,6 +121,14 @@ public class Goban {
 
   public void placeStone(int linearPosition, Stone stone) {
     goban[linearPosition / boardSize][linearPosition % boardSize] = stone;
+  }
+
+  public void updateGoban(Goban gobanCopy) {
+    for (int i = 0; i < boardSize; i++) {
+      for (int j = 0; j < boardSize; j++) {
+        goban[i][j] = gobanCopy.getGoban()[i][j];
+      }
+    }
   }
 
   /**
@@ -144,9 +175,6 @@ public class Goban {
       if (getStone(position) == Stone.EMPTY) {
         return;
       }
-    }
-    if (stoneChain.getStoneChain().size() == 1) {
-      koMove = linearPosition;
     }
     for (int position : stoneChain.getStoneChain()) {
       placeStone(position, Stone.EMPTY);
@@ -242,6 +270,10 @@ public class Goban {
       }
     }
     return gobanCopy;
+  }
+
+  public Stone[][] getGoban() {
+    return goban;
   }
 
   public String toString() {

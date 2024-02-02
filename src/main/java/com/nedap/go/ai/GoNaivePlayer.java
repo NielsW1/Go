@@ -14,23 +14,17 @@ public class GoNaivePlayer {
   }
 
   public void makeMove() {
-    List<Integer> validMoves = client.getGoban().getValidMoves();
-    boolean invalid = true;
+    List<Integer> validMoves = client.getGoban().getValidMoves(client.getStone());
     try {
-      if (validMoves.size() < 2) {
+      if (validMoves.size() < 3) {
         client.handleOutput(GoProtocol.PASS);
       }
-      while (invalid) {
         int randomMove = validMoves.get((int) (Math.random() * validMoves.size()));
         client.handleOutput(GoProtocol.MOVE + GoProtocol.SEPARATOR + randomMove);
-        invalid = false;
-
-      }
     } catch (IllegalMoveException | NotYourTurnException | NumberFormatException |
              IndexOutOfBoundsException e) {
-      client.getClientTUI().receiveInput(e.getMessage());
+      client.sendToTUI(e.getMessage());
     }
-
   }
 
 }

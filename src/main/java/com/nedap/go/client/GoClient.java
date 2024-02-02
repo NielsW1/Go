@@ -28,6 +28,7 @@ public class GoClient {
   private Goban goban;
   private boolean gui = false;
   private GoClientListener listener;
+  private Stone stone;
 
   public GoClient(InetAddress address, int port, GoClientTUI client) throws IOException {
     clientSocket = new Socket(address, port);
@@ -37,12 +38,16 @@ public class GoClient {
     receiveInput();
   }
 
-  public Stone getStone(String color) {
+  public Stone getStoneByColor(String color) {
     if (color.equalsIgnoreCase("BLACK")) {
       return Stone.BLACK;
     } else {
       return Stone.WHITE;
     }
+  }
+
+  public Stone getStone() {
+    return stone;
   }
 
   public boolean getTurn() {
@@ -100,13 +105,14 @@ public class GoClient {
 
         case GoProtocol.GAME_STARTED:
           boardSize = Integer.parseInt(parsedInput[2]);
-          handleGameStart();
+          String[] usernames = parsedInput[1].split(",");
+          handleGameStart(usernames[0], usernames[1]);
           break;
 
         case GoProtocol.MOVE:
           currentTurn = false;
           int position = Integer.parseInt(parsedInput[1]);
-          Stone move = getStone(parsedInput[2]);
+          Stone move = getStoneByColor(parsedInput[2]);
           handleMove(position, move);
           break;
 
@@ -129,7 +135,14 @@ public class GoClient {
     sendToTUI(inputLine);
   }
 
-  public void handleGameStart() {
+  public void handleGameStart(String name1, String name2) {
+    if (name1.equals(username)) {
+      stone = Stone.BLACK;
+    } else if (name2.equals(username)) {
+      stone = Stone.WHITE;
+    } else {
+      sendMessage(GoProtocol.ERROR + GoProtocol.SEPARATOR + "User not in game!");
+    }
     goban = new Goban(boardSize);
     gameStarted = true;
     queued = false;

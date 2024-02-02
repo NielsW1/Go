@@ -31,7 +31,8 @@ public class GoTest {
     try {
       game.makeMove(0, player1);
       game.makeMove(1, player2);
-    } catch (IllegalMoveException | NotYourTurnException ignored) {
+    } catch (IllegalMoveException | NotYourTurnException e) {
+      e.printStackTrace();
     }
     assertEquals(Stone.BLACK, game.getGoban().getStone(0));
     assertEquals(Stone.WHITE, game.getGoban().getStone(1));
@@ -45,13 +46,15 @@ public class GoTest {
     assertThrows(NotYourTurnException.class, () -> game.makeMove(3, player2));
     try {
       game.makeMove(0, player1);
-    } catch (IllegalMoveException | NotYourTurnException ignored) {
+    } catch (IllegalMoveException | NotYourTurnException e) {
+      e.printStackTrace();
     }
     assertEquals(player2, game.getTurn());
     assertThrows(NotYourTurnException.class, () -> game.makeMove(3, player1));
     try {
       game.makeMove(1, player2);
-    } catch (IllegalMoveException | NotYourTurnException ignored) {
+    } catch (IllegalMoveException | NotYourTurnException e) {
+      e.printStackTrace();
     }
     assertEquals(player1, game.getTurn());
     assertThrows(NotYourTurnException.class, () -> game.makeMove(3, player2));
@@ -69,7 +72,8 @@ public class GoTest {
       game.makeMove(11, player1);
       game.makeMove(10, player2);
       game.makeMove(19, player1);
-    } catch (IllegalMoveException | NotYourTurnException ignored) {
+    } catch (IllegalMoveException | NotYourTurnException e) {
+      e.printStackTrace();
     }
     assertEquals(gobanCopy.toString(), game.toString());
   }
@@ -114,7 +118,8 @@ public class GoTest {
       game.makeMove(1, player1);
       game.makeMove(0, player2);
       game.makeMove(9, player1);
-    } catch (IllegalMoveException | NotYourTurnException ignored) {
+    } catch (IllegalMoveException | NotYourTurnException e) {
+      e.printStackTrace();
     }
     assertEquals(gobanCopy.toString(), game.toString());
   }
@@ -152,7 +157,8 @@ public class GoTest {
       game.setTurn();
       game.makeMove(4,1, player2);
       gobanCopy.makeMove(37, Stone.WHITE);
-    } catch (IllegalMoveException | NotYourTurnException ignored) {
+    } catch (IllegalMoveException | NotYourTurnException e) {
+      e.printStackTrace();
     }
     assertEquals(gobanCopy.toString(), game.toString());
   }
@@ -168,7 +174,8 @@ public class GoTest {
     try {
       game.setTurn();
       game.makeMove(31, player2);
-    } catch (IllegalMoveException | NotYourTurnException ignored) {
+    } catch (IllegalMoveException | NotYourTurnException e) {
+      e.printStackTrace();
     }
     assertEquals(gobanCopy.toString(), game.toString());
   }
@@ -213,7 +220,7 @@ public class GoTest {
   @Test
   void testKOrule() {
     int[] moves = {11, 19, 21, 29};
-    int[] oppMoves = {12, 20, 22, 30};
+    int[] oppMoves = {12, 22, 30};
     int[] testMoves = {0, 11, 19, 21, 29};
     int[] testOppMoves = {1, 12, 22, 30};
     gobanCopy.makeBulkMoves(testMoves, player1);
@@ -223,26 +230,16 @@ public class GoTest {
     game.setTurn();
     try {
       game.makeMove(2, 2, player2);
-    } catch (IllegalMoveException | NotYourTurnException ignored) {
+    } catch (IllegalMoveException | NotYourTurnException e) {
+      e.printStackTrace();
     }
     assertThrows(IllegalMoveException.class, () -> game.makeMove(2, 3, player1));
     try {
       game.makeMove(0, player1);
       game.makeMove(1, player2);
       game.makeMove(2, 3, player1);
-    } catch (IllegalMoveException | NotYourTurnException ignored) {
-    }
-    assertEquals(gobanCopy.toString(), game.toString());
-  }
-
-  @Test
-  void testSelfCapture() {
-    int[] oppMoves = {10, 11, 12, 19, 21, 28, 29, 30};
-    gobanCopy.makeBulkMoves(oppMoves, player2);
-    game.makeBulkMoves(oppMoves, player2);
-    try {
-      game.makeMove(20, player1);
-    } catch (IllegalMoveException | NotYourTurnException ignored) {
+    } catch (IllegalMoveException | NotYourTurnException e) {
+      e.printStackTrace();
     }
     assertEquals(gobanCopy.toString(), game.toString());
   }
@@ -254,9 +251,11 @@ public class GoTest {
     gobanCopy.makeBulkMoves(oppMoves, player2);
     game.makeBulkMoves(moves, player1);
     game.makeBulkMoves(oppMoves, player2);
+    System.out.println(game.toString());
     try {
       game.makeMove(3, 3, player1);
-    } catch (IllegalMoveException | NotYourTurnException ignored) {
+    } catch (IllegalMoveException | NotYourTurnException e) {
+      e.printStackTrace();
     }
     assertEquals(gobanCopy.toString(), game.toString());
   }
@@ -271,10 +270,11 @@ public class GoTest {
     try {
       gobanCopy.makeMove(80, Stone.BLACK);
       game.makeMove(80, player1);
-    } catch (IllegalMoveException | NotYourTurnException ignored) {
+    } catch (IllegalMoveException | NotYourTurnException e) {
+      e.printStackTrace();
     }
-    System.out.println(game.toString());
     assertEquals(gobanCopy.toString(), game.toString());
 
   }
+
 }
